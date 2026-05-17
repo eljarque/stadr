@@ -400,79 +400,36 @@
   function altBlank(){ return { name:'', description:'', advantages:'', disadvantages:'', whyDiscarded:'' }; }
 
   /* ---------- Store (servidor compartido) ---------- */
- // Fallback a localStorage si apiStore no está disponible (desarrollo, errores Blobs, etc.)
-  const storage = {
-    async get(k){ const v = localStorage.getItem(k); return v==null ? null : { key:k, value:v }; },
-    async set(k,v){ localStorage.setItem(k, v); return { key:k, value:v }; },
-    async delete(k){ localStorage.removeItem(k); return { key:k, deleted:true }; }
-  };
-  let useRemote = true; // intentamos servidor primero
-
-  async function apiStore(action, payload){
-    if(!useRemote) return storageLocalFallback(action, payload); // si Blobs falló, usa local
-    const headers={ "Content-Type":"application/json" };
-    const tk=getToken(); if(tk) headers["x-app-token"]=tk;
+  async function loadIndex(){
+    const r = await apiStore('list');
+    state.index = Array.isArray(r.items) ? r.items : [];
+  }
+  async function loadRec(id){
+    try { const r = await apiStore('get', { id }); return r.record || null; }
+    catch(e){ console.error(e); return null; }
+  }
+  async function saveCurrent(){
+    const c = state.current; if(!c) return false;
+    c.updatedAt = Date.now();
     try {
-      const res=await fetch(STORE_ENDPOINT, {
-        method:"POST", headers,
-        body: JSON.stringify(Object.assign({ action }, payload||{}))
-      });
-      if(res.status===401){
-        const pass = prompt('Catálogo protegido. Introduce la clave de acceso:');
-        if(!pass){ const e=new Error("Clave de acceso requerida."); e.code="AUTH"; throw e; }
-        setToken(pass.trim());
-        return apiStore(action, payload);
-      }
-      let data = {};
-      try { data = await res.json(); } catch(e){}
-      if(!res.ok) throw new Error(data.error || ("El almacén respondió "+res.status));
-      return data;
-    } catch(e){
-      // Si Blobs falla, cae a localStorage y continúa
-      console.warn('apiStore remoto falló, usando localStorage:', e.message);
-      useRemote = false;
-      return storageLocalFallback(action, payload);
-    }
+      const r = await apiStore('put', { record:c });
+      if(r.record && r.record.updatedAt) c.updatedAt = r.record.updatedAt;
+      const meta = { id:c.id, number:c.number, title:c.title||'(sin título)', status:c.status, updatedAt:c.updatedAt };
+      const i = state.index.findIndex(x=>x.id===c.id);
+      if(i>=0) state.index[i]=meta; else state.index.unshift(meta);
+      state.index.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+      state.dirty=false;
+      return true;
+    } catch(e){ console.error(e); return false; }
+  }
+  async function deleteRec(id){
+    try { await apiStore('delete', { id }); }
+    catch(e){ console.error(e); return false; }
+    state.index = state.index.filter(x=>x.id!==id);
+    if(state.current && state.current.id===id) state.current=null;
+    return true;
   }
 
-  async function storageLocalFallback(action, payload){
-    const IDX_KEY_LOCAL = 'stadr:index';
-    const REC_KEY_LOCAL = id => 'stadr:rec:' + id;
-    if(action==='list'){
-      try {
-        const r = await storage.get(IDX_KEY_LOCAL);
-        const idx = r && r.value ? JSON.parse(r.value) : [];
-        return { items: idx };
-      } catch(e){ return { items:[] }; }
-    }
-    if(action==='get'){
-      try { const r = await storage.get(REC_KEY_LOCAL(payload.id)); return { record: r && r.value ? JSON.parse(r.value) : null }; }
-      catch(e){ return { record:null }; }
-    }
-    if(action==='put'){
-      const c = payload.record; if(!c) return { error:'Inválido' };
-      c.updatedAt = Date.now();
-      try {
-        await storage.set(REC_KEY_LOCAL(c.id), JSON.stringify(c));
-        const r = await storage.get(IDX_KEY_LOCAL);
-        const idx = r && r.value ? JSON.parse(r.value) : [];
-        const meta = { id:c.id, number:c.number||'XXX', title:c.title||'(sin título)', status:c.status||'Propuesta', updatedAt:c.updatedAt };
-        const i = idx.findIndex(x=>x.id===c.id);
-        if(i>=0) idx[i]=meta; else idx.unshift(meta);
-        await storage.set(IDX_KEY_LOCAL, JSON.stringify(idx));
-        return { record:c };
-      } catch(e){ console.error(e); return { error:e.message }; }
-    }
-    if(action==='delete'){
-      try {
-        await storage.delete(REC_KEY_LOCAL(payload.id));
-        const r = await storage.get(IDX_KEY_LOCAL);
-        const idx = (r && r.value ? JSON.parse(r.value) : []).filter(x=>x.id!==payload.id);
-        await storage.set(IDX_KEY_LOCAL, JSON.stringify(idx));
-        return { ok:true };
-      } catch(e){ return { error:e.message }; }
-    }
-  }
   /* ---------- Helpers ---------- */
   const esc = s => (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); }
