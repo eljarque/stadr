@@ -244,16 +244,22 @@
   #stadr-root .decision-box .pick select { width:auto; min-width:240px; }
   #stadr-root .decision-box .pick label { font-size:12.5px; font-weight:600; color:var(--ink-soft); }
 
-  #stadr-root .footer-actions {
-    position:sticky; bottom:0; background:linear-gradient(180deg,rgba(251,249,243,0),var(--card) 30%);
-    display:flex; gap:10px; align-items:center; padding:18px 0 2px; margin-top:14px;
-    border-top:1px solid var(--line-soft); flex-wrap:wrap;
+  #stadr-root .action-bar {
+    position:sticky; top:0; z-index:20;
+    background:var(--card);
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    padding:14px 36px; margin:0 -36px 22px;
+    border-bottom:1px solid var(--line);
+    box-shadow:0 4px 12px -8px rgba(0,0,0,.15);
   }
-  #stadr-root .footer-actions .saved {
+  @media (max-width:560px){
+    #stadr-root .action-bar { padding:12px 18px; margin:0 -18px 18px; }
+  }
+  #stadr-root .action-bar .saved {
     font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ok);
     opacity:0; transition:.3s;
   }
-  #stadr-root .footer-actions .saved.show { opacity:1; }
+  #stadr-root .action-bar .saved.show { opacity:1; }
 
   /* Modal */
   #stadr-root .overlay {
@@ -775,6 +781,16 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         </div>
       </div>
 
+      <div class="action-bar">
+        <button class="btn primary" id="saveBtn">Guardar</button>
+        <button class="btn" id="mdBtn">Ver Markdown</button>
+        <button class="btn ghost" id="dlBtn">Descargar .md</button>
+        <button class="btn ghost" id="copyBtn">Copiar Markdown</button>
+        <div class="spacer" style="flex:1"></div>
+        <span class="saved">✓ Guardado</span>
+        <button class="btn danger sm" id="delBtn">Eliminar</button>
+      </div>
+
       <section class="sec">
         <div class="sec-h"><span class="n">01</span><h2>Contexto</h2></div>
         <p class="hint">Situación organizativa/técnica que hace necesaria la decisión: estructura de equipos, dependencias, restricciones, presión externa. Debe ser autosuficiente.</p>
@@ -840,17 +856,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
           <tr><td class="lbl">Reemplaza a</td><td><input type="text" data-k="meta.replaces" placeholder="STADR-NNN (si aplica)" value="${esc(c.meta.replaces)}"/></td></tr>
           <tr><td class="lbl">Reemplazada por</td><td><input type="text" data-k="meta.replacedBy" placeholder="STADR-NNN (si aplica)" value="${esc(c.meta.replacedBy)}"/></td></tr>
         </tbody></table>
-      </section>
-
-      <div class="footer-actions">
-        <button class="btn primary" id="saveBtn">Guardar</button>
-        <button class="btn" id="mdBtn">Ver Markdown</button>
-        <button class="btn ghost" id="dlBtn">Descargar .md</button>
-        <button class="btn ghost" id="copyBtn">Copiar Markdown</button>
-        <div class="spacer" style="flex:1"></div>
-        <span class="saved">✓ Guardado</span>
-        <button class="btn danger sm" id="delBtn">Eliminar</button>
-      </div>`;
+      </section>`;
   }
 
   function setPath(obj, path, val){
