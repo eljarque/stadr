@@ -390,9 +390,6 @@
       actors:{ decide:'', propone:'', afectados:'', consultados:'' },
       alternatives:[ altBlank(), altBlank() ],
       decision:{ option:'', rationale:'' },
-      tradeoffs:[''],
-      alarms:[''],
-      contingency:'',
       meta:{ decisionDate:'', reviewDate:'', author:'', sessionOrigin:'', replaces:'', replacedBy:'' },
       createdAt:Date.now(), updatedAt:Date.now()
     };
@@ -494,16 +491,6 @@
     if(selIdx>=0 && c.alternatives[selIdx]) selName=c.alternatives[selIdx].name;
     L.push(`**Alternativa seleccionada: Opción ${sel||'[X]'} — ${selName||'[Nombre]'}**`);
     L.push(''); L.push(c.decision.rationale.trim()||'_Rationale pendiente._'); RULE();
-
-    // Secciones opcionales: se omiten por completo si están vacías
-    // (el STADR real STADR-001 no las incluye).
-    const tos = c.tradeoffs.filter(t=>t.trim());
-    if(tos.length){ H('Trade-offs aceptados'); tos.forEach(t=>L.push(`- ${t.trim()}`)); RULE(); }
-
-    const al = c.alarms.filter(a=>a.trim());
-    if(al.length){ H('Señales de alarma'); al.forEach(a=>L.push(`- ${a.trim()}`)); RULE(); }
-
-    if(c.contingency.trim()){ H('Plan de contingencia'); L.push(c.contingency.trim()); RULE(); }
 
     H('Revisión');
     L.push('| Campo | Valor |'); L.push('|-------|-------|');
@@ -622,9 +609,6 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         disadvantages:a.disadvantages||'', whyDiscarded:a.whyDiscarded||'' }));
     }
     if(g.decision){ c.decision.option=g.decision.option||''; c.decision.rationale=g.decision.rationale||''; }
-    c.tradeoffs = (Array.isArray(g.tradeoffs)&&g.tradeoffs.length)? g.tradeoffs.slice() : [''];
-    c.alarms = (Array.isArray(g.alarms)&&g.alarms.length)? g.alarms.slice() : [''];
-    c.contingency = g.contingency||'';
     if(g.number) c.number = String(g.number);
     if(g.meta) Object.assign(c.meta, {
       decisionDate:g.meta.decisionDate||'', reviewDate:g.meta.reviewDate||'',
@@ -821,29 +805,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         </div>
       </section>
 
-      <section class="sec">
-        <div class="sec-h"><span class="n">07</span><h2>Trade-offs aceptados</h2></div>
-        <p class="hint">Lo que se sacrifica conscientemente. Sé específico.</p>
-        <div id="tradeoffs">${liList(c.tradeoffs,'tradeoffs','Trade-off aceptado…')}</div>
-        <button class="add-row" data-addli="tradeoffs">+ Añadir trade-off</button>
-      </section>
-
-      <section class="sec">
-        <div class="sec-h"><span class="n">08</span><h2>Señales de alarma</h2></div>
-        <p class="hint">Indicadores observables (no métricas abstractas) de que la decisión está fallando.</p>
-        <div id="alarms">${liList(c.alarms,'alarms','Si ocurre X… / Si en N semanas no vemos Y…')}</div>
-        <button class="add-row" data-addli="alarms">+ Añadir señal</button>
-      </section>
-
-      <section class="sec">
-        <div class="sec-h"><span class="n">09</span><h2>Plan de contingencia</h2>
-          <span style="font-size:11px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace">opcional</span></div>
-        <p class="hint">Si las señales de alarma se activan, ¿qué hacemos? Déjalo vacío si no aplica.</p>
-        <textarea data-k="contingency">${esc(c.contingency)}</textarea>
-      </section>
-
-      <section class="sec">
-        <div class="sec-h"><span class="n">10</span><h2>Revisión y metadatos</h2></div>
+        <div class="sec-h"><span class="n">07</span><h2>Revisión y metadatos</h2></div>
         <table class="grid"><tbody>
           <tr><td class="lbl">Fecha de decisión</td><td><input type="text" data-k="meta.decisionDate" placeholder="AAAA-MM-DD" value="${esc(c.meta.decisionDate)}"/></td></tr>
           <tr><td class="lbl">Revisar en</td><td><input type="text" data-k="meta.reviewDate" placeholder="AAAA-MM-DD o [hito]" value="${esc(c.meta.reviewDate)}"/></td></tr>

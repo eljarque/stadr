@@ -22,11 +22,6 @@ El template STADR canónico tiene estas secciones:
 (fecha de decisión, revisar en, autor/a, sesión de origen, reemplaza a,
 reemplazada por).
 
-Trade-offs aceptados, Señales de alarma y Plan de contingencia son secciones
-OPCIONALES: su ausencia NO penaliza la conformidad (no las marques como
-"missing", márcalas "ok" si no aplican o si su contenido está integrado en
-la Decisión).
-
 Recibirás el texto de un documento. Haz dos cosas:
 
 A) Evalúa su conformidad con el template.
@@ -52,9 +47,6 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown ni fences) con la forma:
    "actors": { "decide":string,"propone":string,"afectados":string,"consultados":string },
    "alternatives": [ { "name":string,"description":string,"advantages":string,"disadvantages":string,"whyDiscarded":string } ],
    "decision": { "option": "A"|"B"|"C"|"D"|"E"|"F"|"", "rationale":string },
-   "tradeoffs": [string],
-   "alarms": [string],
-   "contingency": string,
    "meta": { "decisionDate":string,"reviewDate":string,"author":string,"sessionOrigin":string,"replaces":string,"replacedBy":string }
  }
 }

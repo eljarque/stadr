@@ -24,11 +24,9 @@ REGLAS:
 3. Separa hechos de inferencias. Antepón "[Inferido]" a cualquier afirmación no verbalizada explícitamente en la sesión.
 4. NO inventes alternativas que no se hayan mencionado. Si solo se discutieron dos, devuelve dos.
 5. Preserva el rationale real, incluidos desacuerdos y tensiones.
-6. Plan de contingencia: solo si se mencionó o el riesgo es evidente; si no, cadena vacía.
-7. Señales de alarma: si no se mencionaron, infiere las más obvias y antepón "[Inferido]".
-8. Estado: siempre "Propuesta" salvo que la transcripción confirme aprobación en sesión.
-9. Actores: extrae nombres/equipos; si no están claros usa "[No identificado]".
-10. Sé conciso. Sin lenguaje de relleno. Responde en español.
+6. Estado: siempre "Propuesta" salvo que la transcripción confirme aprobación en sesión.
+7. Actores: extrae nombres/equipos; si no están claros usa "[No identificado]".
+8. Sé conciso. Sin lenguaje de relleno. Responde en español.
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adicional, sin fences) con esta forma exacta:
 {
@@ -40,9 +38,6 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
  "actors": { "decide":string,"propone":string,"afectados":string,"consultados":string },
  "alternatives": [ { "name":string,"description":string,"advantages":string,"disadvantages":string,"whyDiscarded":string } ],
  "decision": { "option": "A"|"B"|"C"|"D"|"E"|"F"|"", "rationale":string },
- "tradeoffs": [string],
- "alarms": [string],
- "contingency": string,
  "meta": { "decisionDate":string,"reviewDate":string,"author":string,"sessionOrigin":string }
 }
 "decision.option" es la letra de la alternativa elegida según su orden en el array "alternatives" (la 1ª = "A").`;
