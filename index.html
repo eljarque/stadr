@@ -1,0 +1,979 @@
+<div id="stadr-root"></div>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  #stadr-root *, #stadr-root *::before, #stadr-root *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #stadr-root {
+    --paper:#f3efe6;
+    --paper-2:#ece7da;
+    --card:#fbf9f3;
+    --ink:#1f1d29;
+    --ink-soft:#54505f;
+    --ink-faint:#8a8597;
+    --line:#d8d2c2;
+    --line-soft:#e4dfd1;
+    --accent:#b6502b;
+    --accent-soft:#e9d2c6;
+    --blue:#2f5d70;
+    --ok:#3f7d52;
+    --warn:#b07a1f;
+    --gray:#6b6776;
+
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 8% -5%, rgba(182,80,43,.06), transparent 60%),
+      radial-gradient(800px 600px at 100% 0%, rgba(47,93,112,.06), transparent 55%),
+      var(--paper);
+    min-height:100vh;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  #stadr-root .wrap { max-width:1280px; margin:0 auto; padding:28px 30px 80px; }
+
+  /* Header */
+  #stadr-root .masthead {
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:6px;
+    flex-wrap:wrap; gap:16px;
+  }
+  #stadr-root .brand h1 {
+    font-family:'Fraunces',serif; font-weight:600; font-size:34px; letter-spacing:-.5px; line-height:1;
+  }
+  #stadr-root .brand .sub {
+    font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-soft);
+    margin-top:9px; font-weight:500;
+  }
+  #stadr-root .masthead .meta {
+    text-align:right; font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+    color:var(--ink-faint); letter-spacing:.04em; line-height:1.7;
+  }
+
+  #stadr-root .toolbar {
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    padding:14px 0 22px; border-bottom:1px solid var(--line); margin-bottom:24px;
+  }
+  #stadr-root .toolbar .spacer { flex:1; }
+  #stadr-root .count { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-faint); }
+
+  /* Buttons */
+  #stadr-root button {
+    font-family:'IBM Plex Sans',sans-serif; font-size:13.5px; font-weight:500;
+    cursor:pointer; border-radius:2px; transition:.16s ease; letter-spacing:.01em;
+  }
+  #stadr-root .btn {
+    padding:9px 16px; border:1px solid var(--ink); background:transparent; color:var(--ink);
+  }
+  #stadr-root .btn:hover { background:var(--ink); color:var(--paper); }
+  #stadr-root .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #stadr-root .btn.primary:hover { background:#9c401f; border-color:#9c401f; }
+  #stadr-root .btn.ghost { border-color:var(--line); color:var(--ink-soft); }
+  #stadr-root .btn.ghost:hover { background:var(--paper-2); color:var(--ink); border-color:var(--ink-faint); }
+  #stadr-root .btn.danger { border-color:#c1503b; color:#a23c2a; }
+  #stadr-root .btn.danger:hover { background:#a23c2a; color:#fff; border-color:#a23c2a; }
+  #stadr-root .btn.sm { padding:5px 11px; font-size:12px; }
+  #stadr-root .btn:disabled { opacity:.45; cursor:not-allowed; }
+
+  /* Layout */
+  #stadr-root .layout { display:grid; grid-template-columns:330px 1fr; gap:28px; align-items:start; }
+  @media (max-width:920px){ #stadr-root .layout { grid-template-columns:1fr; } }
+
+  /* Catalog */
+  #stadr-root .catalog-h {
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:12px; font-weight:600;
+  }
+  #stadr-root .rec {
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--line);
+    padding:13px 15px; margin-bottom:9px; cursor:pointer; transition:.15s ease;
+  }
+  #stadr-root .rec:hover { border-left-color:var(--accent); transform:translateX(2px); }
+  #stadr-root .rec.active { border-left-color:var(--accent); background:#fff; box-shadow:0 1px 0 var(--line); }
+  #stadr-root .rec .num {
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent);
+    font-weight:600; letter-spacing:.05em;
+  }
+  #stadr-root .rec .ttl { font-size:14px; font-weight:500; margin:3px 0 8px; line-height:1.35; }
+  #stadr-root .rec .foot { display:flex; justify-content:space-between; align-items:center; }
+  #stadr-root .rec .date { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-faint); }
+  #stadr-root .empty-cat {
+    border:1px dashed var(--line); padding:26px 18px; text-align:center;
+    color:var(--ink-faint); font-size:13px; background:rgba(255,255,255,.4);
+  }
+
+  /* Badge */
+  #stadr-root .badge {
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10px;
+    font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+    padding:3px 8px; border:1px solid currentColor; border-radius:2px;
+  }
+  #stadr-root .badge.Propuesta { color:var(--warn); }
+  #stadr-root .badge.Aceptada { color:var(--ok); }
+  #stadr-root .badge.Reemplazada { color:var(--gray); }
+  #stadr-root .badge.Deprecada { color:#a23c2a; }
+
+  /* Panel */
+  #stadr-root .panel {
+    background:var(--card); border:1px solid var(--line);
+    box-shadow:0 1px 0 var(--line-soft); min-height:60vh;
+  }
+  #stadr-root .panel-pad { padding:30px 36px 40px; }
+  @media (max-width:560px){ #stadr-root .panel-pad { padding:22px 18px 30px; } }
+
+  #stadr-root .placeholder {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:80px 30px; color:var(--ink-faint);
+  }
+  #stadr-root .placeholder .mark {
+    font-family:'Fraunces',serif; font-size:60px; color:var(--accent-soft);
+    line-height:1; margin-bottom:18px;
+  }
+  #stadr-root .placeholder h3 { font-family:'Fraunces',serif; font-size:22px; color:var(--ink-soft); font-weight:500; margin-bottom:8px; }
+  #stadr-root .placeholder p { font-size:13.5px; max-width:380px; }
+
+  /* Form */
+  #stadr-root .ed-head {
+    display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+    border-bottom:1px solid var(--line); padding-bottom:20px; margin-bottom:26px; flex-wrap:wrap;
+  }
+  #stadr-root .ed-head .title-block { flex:1; min-width:260px; }
+  #stadr-root .field-num {
+    display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace;
+    font-size:13px; color:var(--accent); font-weight:600; margin-bottom:6px;
+  }
+  #stadr-root .field-num input {
+    width:78px; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--accent);
+    text-align:center;
+  }
+  #stadr-root input, #stadr-root textarea, #stadr-root select {
+    width:100%; font-family:'IBM Plex Sans',sans-serif; font-size:14px; color:var(--ink);
+    background:#fff; border:1px solid var(--line); border-radius:2px; padding:9px 11px;
+    transition:.14s; line-height:1.5;
+  }
+  #stadr-root textarea { resize:vertical; min-height:74px; }
+  #stadr-root input:focus, #stadr-root textarea:focus, #stadr-root select:focus {
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(182,80,43,.10);
+  }
+  #stadr-root .title-input {
+    font-family:'Fraunces',serif; font-size:24px; font-weight:600; border:none;
+    background:transparent; padding:4px 0; border-bottom:2px solid var(--line);
+  }
+  #stadr-root .title-input:focus { box-shadow:none; border-bottom-color:var(--accent); }
+
+  #stadr-root section.sec { margin-bottom:30px; }
+  #stadr-root .sec-h {
+    display:flex; align-items:baseline; gap:10px; margin-bottom:6px;
+    border-bottom:1px solid var(--line-soft); padding-bottom:7px;
+  }
+  #stadr-root .sec-h .n {
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--accent); font-weight:600;
+  }
+  #stadr-root .sec-h h2 { font-family:'Fraunces',serif; font-size:19px; font-weight:600; }
+  #stadr-root .hint { font-size:12px; color:var(--ink-faint); margin:6px 0 11px; font-style:italic; }
+
+  #stadr-root .dims { display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin-top:6px; }
+  @media (max-width:560px){ #stadr-root .dims { grid-template-columns:1fr; } }
+  #stadr-root .dim {
+    display:flex; align-items:flex-start; gap:9px; font-size:13.5px; cursor:pointer;
+    padding:6px 0; color:var(--ink-soft);
+  }
+  #stadr-root .dim input { width:auto; margin-top:3px; accent-color:var(--accent); }
+  #stadr-root .dim.checked { color:var(--ink); font-weight:500; }
+  #stadr-root .dim-other { display:flex; align-items:center; gap:10px; grid-column:1/-1; margin-top:2px; }
+  #stadr-root .dim-other input[type=text]{ flex:1; }
+
+  #stadr-root table.grid { width:100%; border-collapse:collapse; }
+  #stadr-root table.grid td { border:1px solid var(--line); padding:0; vertical-align:top; }
+  #stadr-root table.grid td.lbl {
+    width:130px; background:var(--paper-2); font-size:12.5px; font-weight:600;
+    color:var(--ink-soft); padding:9px 12px; vertical-align:middle;
+  }
+  #stadr-root table.grid input { border:none; border-radius:0; }
+  #stadr-root table.grid input:focus { box-shadow:inset 0 0 0 2px rgba(182,80,43,.18); }
+
+  #stadr-root .alt {
+    border:1px solid var(--line); border-left:3px solid var(--blue);
+    background:#fff; padding:16px 18px; margin-bottom:14px; position:relative;
+  }
+  #stadr-root .alt .alt-tag {
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+    color:var(--blue); letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px;
+  }
+  #stadr-root .alt .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px; }
+  @media (max-width:560px){ #stadr-root .alt .row2 { grid-template-columns:1fr; } }
+  #stadr-root .mini-lbl {
+    font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--ink-faint); margin:10px 0 4px; display:block;
+  }
+  #stadr-root .alt .rm {
+    position:absolute; top:12px; right:12px;
+  }
+
+  #stadr-root .li-row { display:flex; gap:9px; align-items:flex-start; margin-bottom:9px; }
+  #stadr-root .li-row .bullet {
+    font-family:'IBM Plex Mono',monospace; color:var(--accent); padding-top:9px; font-weight:600; font-size:13px;
+  }
+  #stadr-root .li-row textarea { min-height:46px; }
+  #stadr-root .add-row {
+    background:transparent; border:1px dashed var(--line); color:var(--ink-soft);
+    padding:8px 14px; font-size:12.5px; width:100%; margin-top:4px;
+  }
+  #stadr-root .add-row:hover { border-color:var(--accent); color:var(--accent); }
+
+  #stadr-root .decision-box {
+    background:linear-gradient(180deg,#fff,#fbf8f0); border:1px solid var(--accent-soft);
+    border-left:3px solid var(--accent); padding:18px 20px;
+  }
+  #stadr-root .decision-box .pick { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  #stadr-root .decision-box .pick select { width:auto; min-width:240px; }
+  #stadr-root .decision-box .pick label { font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+
+  #stadr-root .footer-actions {
+    position:sticky; bottom:0; background:linear-gradient(180deg,rgba(251,249,243,0),var(--card) 30%);
+    display:flex; gap:10px; align-items:center; padding:18px 0 2px; margin-top:14px;
+    border-top:1px solid var(--line-soft); flex-wrap:wrap;
+  }
+  #stadr-root .footer-actions .saved {
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ok);
+    opacity:0; transition:.3s;
+  }
+  #stadr-root .footer-actions .saved.show { opacity:1; }
+
+  /* Modal */
+  #stadr-root .overlay {
+    position:fixed; inset:0; background:rgba(31,29,41,.55); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; padding:24px; z-index:50;
+  }
+  #stadr-root .modal {
+    background:var(--card); border:1px solid var(--ink); width:100%; max-width:680px;
+    max-height:88vh; overflow:auto; box-shadow:0 24px 60px rgba(0,0,0,.3);
+  }
+  #stadr-root .modal-h {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:20px 26px; border-bottom:1px solid var(--line);
+  }
+  #stadr-root .modal-h h3 { font-family:'Fraunces',serif; font-size:20px; font-weight:600; }
+  #stadr-root .modal-h .x {
+    background:none; border:none; font-size:22px; color:var(--ink-faint); line-height:1; padding:4px 8px;
+  }
+  #stadr-root .modal-h .x:hover { color:var(--ink); }
+  #stadr-root .modal-b { padding:24px 26px; }
+  #stadr-root .modal-b textarea { min-height:220px; font-size:13px; font-family:'IBM Plex Mono',monospace; }
+  #stadr-root .modal-b p.lead { font-size:13.5px; color:var(--ink-soft); margin-bottom:14px; }
+  #stadr-root .modal-foot { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; align-items:center; }
+  #stadr-root .modal-foot .status { flex:1; font-size:12.5px; color:var(--ink-soft); }
+  #stadr-root .modal-foot .status.err { color:#a23c2a; }
+
+  #stadr-root .md-prev {
+    font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.7;
+    white-space:pre-wrap; background:#fff; border:1px solid var(--line);
+    padding:20px 22px; max-height:60vh; overflow:auto; color:var(--ink);
+  }
+
+  #stadr-root .spin {
+    width:15px; height:15px; border:2px solid var(--accent-soft); border-top-color:var(--accent);
+    border-radius:50%; display:inline-block; animation:stadrspin .7s linear infinite; vertical-align:-2px;
+  }
+  @keyframes stadrspin { to { transform:rotate(360deg); } }
+
+  #stadr-root .tag-inferido {
+    background:rgba(176,122,31,.14); color:var(--warn); font-family:'IBM Plex Mono',monospace;
+    font-size:10px; padding:2px 6px; border-radius:2px; font-weight:600; margin-left:6px;
+  }
+  #stadr-root .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:11px 22px; font-size:13px;
+    border-radius:3px; z-index:80; box-shadow:0 10px 30px rgba(0,0,0,.3);
+    font-family:'IBM Plex Mono',monospace; letter-spacing:.02em;
+  }
+</style>
+
+<script>
+(function(){
+  const root = document.getElementById('stadr-root');
+  const IDX_KEY = 'stadr:index';
+  const REC_KEY = id => 'stadr:rec:' + id;
+  const TOKEN_KEY = 'stadr:access-token';
+  const GEN_ENDPOINT = '/api/generate';
+
+  // Persistencia local del navegador. Reemplaza al window.storage del sandbox
+  // de Claude: en una webApp desplegada los datos viven en este equipo/navegador.
+  const storage = {
+    async get(k){ const v = localStorage.getItem(k); return v==null ? null : { key:k, value:v }; },
+    async set(k,v){ localStorage.setItem(k, v); return { key:k, value:v }; },
+    async delete(k){ localStorage.removeItem(k); return { key:k, deleted:true }; }
+  };
+
+  const DIMS = [
+    ['teamBoundaries','Límites de equipo / ownership'],
+    ['cognitiveLoad','Cognitive load / scope sostenible'],
+    ['interactionMode','Modo de interacción entre equipos (Collaboration / X-as-a-Service / Facilitating)'],
+    ['dependencies','Estructura de dependencias (productor/consumidor)'],
+    ['techArchitecture','Arquitectura técnica con impacto en equipos'],
+    ['governance','Gobernanza / autonomía de decisión'],
+  ];
+  const STATES = ['Propuesta','Aceptada','Reemplazada','Deprecada'];
+  const STATE_LABEL = {
+    Propuesta:'Propuesta', Aceptada:'Aceptada',
+    Reemplazada:'Reemplazada por STADR-NNN', Deprecada:'Deprecada'
+  };
+  const LETTERS = ['A','B','C','D','E','F'];
+
+  let state = { index:[], current:null, dirty:false, modal:null, busy:false };
+
+  function blank(){
+    return {
+      id:'stadr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      number:'XXX', title:'', version:'1.0', status:'Propuesta',
+      context:'',
+      dims:{ teamBoundaries:false,cognitiveLoad:false,interactionMode:false,
+             dependencies:false,techArchitecture:false,governance:false, other:'' },
+      problem:'',
+      actors:{ decide:'', propone:'', afectados:'', consultados:'' },
+      alternatives:[ altBlank(), altBlank() ],
+      decision:{ option:'', rationale:'' },
+      tradeoffs:[''],
+      alarms:[''],
+      contingency:'',
+      meta:{ decisionDate:'', reviewDate:'', author:'', sessionOrigin:'', replaces:'', replacedBy:'' },
+      createdAt:Date.now(), updatedAt:Date.now()
+    };
+  }
+  function altBlank(){ return { name:'', description:'', advantages:'', disadvantages:'', whyDiscarded:'' }; }
+
+  /* ---------- Storage ---------- */
+  async function loadIndex(){
+    try {
+      const r = await storage.get(IDX_KEY);
+      state.index = r && r.value ? JSON.parse(r.value) : [];
+    } catch(e){ state.index = []; }
+  }
+  async function saveIndex(){
+    try { await storage.set(IDX_KEY, JSON.stringify(state.index)); }
+    catch(e){ console.error('index save', e); }
+  }
+  async function loadRec(id){
+    try { const r = await storage.get(REC_KEY(id)); return r && r.value ? JSON.parse(r.value) : null; }
+    catch(e){ return null; }
+  }
+  async function saveCurrent(){
+    const c = state.current; if(!c) return false;
+    c.updatedAt = Date.now();
+    try {
+      await storage.set(REC_KEY(c.id), JSON.stringify(c));
+      const meta = { id:c.id, number:c.number, title:c.title||'(sin título)', status:c.status, updatedAt:c.updatedAt };
+      const i = state.index.findIndex(x=>x.id===c.id);
+      if(i>=0) state.index[i]=meta; else state.index.unshift(meta);
+      state.index.sort((a,b)=>b.updatedAt-a.updatedAt);
+      await saveIndex();
+      state.dirty=false;
+      return true;
+    } catch(e){ console.error(e); return false; }
+  }
+  async function deleteRec(id){
+    try { await storage.delete(REC_KEY(id)); } catch(e){}
+    state.index = state.index.filter(x=>x.id!==id);
+    await saveIndex();
+    if(state.current && state.current.id===id) state.current=null;
+  }
+
+  /* ---------- Helpers ---------- */
+  const esc = s => (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); }
+  function syncDirty(){ if(!state.dirty){ state.dirty=true; const s=root.querySelector('.saved'); if(s) s.classList.remove('show'); } }
+  function toast(msg){
+    const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+    root.appendChild(t); setTimeout(()=>t.remove(),2200);
+  }
+
+  /* ---------- Markdown export (matches template exactly) ---------- */
+  function toMarkdown(c){
+    const L = [];
+    L.push(`# STADR-${c.number||'XXX'}: ${c.title||'[Título breve de la decisión]'}`);
+    L.push('');
+    L.push('> **Socio-Technical Architecture Decision Record**');
+    L.push(`> Versión: ${c.version||'1.0'} | Estado: \`${STATE_LABEL[c.status]||c.status}\``);
+    L.push(''); L.push('---'); L.push('');
+    L.push('## 1. Contexto'); L.push(''); L.push(c.context.trim()||'_Pendiente._'); L.push(''); L.push('---'); L.push('');
+    L.push('## 2. Dimensión sociotécnica'); L.push('');
+    DIMS.forEach(([k,label])=> L.push(`- [${c.dims[k]?'x':' '}] ${label}`));
+    L.push(`- [${c.dims.other && c.dims.other.trim()?'x':' '}] Otro: ${c.dims.other && c.dims.other.trim()? c.dims.other.trim() : '___'}`);
+    L.push(''); L.push('---'); L.push('');
+    L.push('## 3. Problema'); L.push(''); L.push(c.problem.trim()||'_Pendiente._'); L.push(''); L.push('---'); L.push('');
+    L.push('## 4. Actores'); L.push('');
+    L.push('| Rol | Nombre / Equipo |'); L.push('|-----|----------------|');
+    L.push(`| Decide | ${c.actors.decide||''} |`);
+    L.push(`| Propone | ${c.actors.propone||''} |`);
+    L.push(`| Afectados | ${c.actors.afectados||''} |`);
+    L.push(`| Consultados | ${c.actors.consultados||''} |`);
+    L.push(''); L.push('---'); L.push('');
+    L.push('## 5. Alternativas evaluadas'); L.push('');
+    c.alternatives.forEach((a,i)=>{
+      L.push(`### Opción ${LETTERS[i]||(i+1)} — ${a.name||'[Nombre]'}`);
+      if(a.description.trim()){ L.push(a.description.trim()); }
+      L.push(`**Ventajas:** ${a.advantages.trim()||'…'}`);
+      L.push(`**Inconvenientes:** ${a.disadvantages.trim()||'…'}`);
+      L.push(`**Por qué se descartó:** ${a.whyDiscarded.trim()||'…'}`);
+      L.push('');
+    });
+    L.push('---'); L.push('');
+    L.push('## 6. Decisión'); L.push('');
+    const sel = c.decision.option;
+    let selName='';
+    if(sel!==''){ const ai=LETTERS.indexOf(sel); if(ai>=0 && c.alternatives[ai]) selName=c.alternatives[ai].name; }
+    L.push(`**Alternativa seleccionada: Opción ${sel||'[X]'} — ${selName||'[Nombre]'}**`);
+    L.push(''); L.push(c.decision.rationale.trim()||'_Rationale pendiente._'); L.push(''); L.push('---'); L.push('');
+    L.push('## 7. Trade-offs aceptados'); L.push('');
+    const tos=c.tradeoffs.filter(t=>t.trim());
+    (tos.length?tos:['…']).forEach(t=>L.push(`- ${t.trim()}`));
+    L.push(''); L.push('---'); L.push('');
+    L.push('## 8. Señales de alarma'); L.push('');
+    const al=c.alarms.filter(a=>a.trim());
+    (al.length?al:['…']).forEach(a=>L.push(`- ${a.trim()}`));
+    L.push(''); L.push('---'); L.push('');
+    L.push('## 9. Plan de contingencia'); L.push('');
+    L.push(c.contingency.trim()||'No aplica.'); L.push(''); L.push('---'); L.push('');
+    L.push('## 10. Revisión'); L.push('');
+    L.push('| Campo | Valor |'); L.push('|-------|-------|');
+    L.push(`| Fecha de decisión | ${c.meta.decisionDate||'AAAA-MM-DD'} |`);
+    L.push(`| Revisar en | ${c.meta.reviewDate||'AAAA-MM-DD o [hito]'} |`);
+    L.push(`| Autor/a | ${c.meta.author||''} |`);
+    L.push(`| Sesión de origen | ${c.meta.sessionOrigin||''} |`);
+    L.push(`| Reemplaza a | ${c.meta.replaces||''} |`);
+    L.push(`| Reemplazada por | ${c.meta.replacedBy||''} |`);
+    L.push('');
+    return L.join('\n');
+  }
+  function slug(s){ return (s||'sin-titulo').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,50); }
+
+  /* ---------- AI generation ---------- */
+  const SYS_PROMPT = `Eres un arquitecto sociotécnico experto en Team Topologies, Domain-Driven Design y Architecture Modernization. Generas un Socio-Technical Architecture Decision Record (STADR) a partir de la transcripción de una sesión de arquitectura.
+
+Un STADR documenta decisiones donde se cruzan estructura de equipos, cognitive load, modos de interacción, dependencias organizativas y arquitectura técnica. Su valor está en capturar el razonamiento sociotécnico, no solo el resultado.
+
+REGLAS:
+1. Lee la transcripción completa antes de escribir.
+2. Identifica la decisión principal. Si hay varias independientes, elige la más relevante (una sola por STADR).
+3. Separa hechos de inferencias. Antepón "[Inferido]" a cualquier afirmación no verbalizada explícitamente en la sesión.
+4. NO inventes alternativas que no se hayan mencionado. Si solo se discutieron dos, devuelve dos.
+5. Preserva el rationale real, incluidos desacuerdos y tensiones.
+6. Plan de contingencia: solo si se mencionó o el riesgo es evidente; si no, cadena vacía.
+7. Señales de alarma: si no se mencionaron, infiere las más obvias y antepón "[Inferido]".
+8. Estado: siempre "Propuesta" salvo que la transcripción confirme aprobación en sesión.
+9. Actores: extrae nombres/equipos; si no están claros usa "[No identificado]".
+10. Sé conciso. Sin lenguaje de relleno. Responde en español.
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adicional, sin fences) con esta forma exacta:
+{
+ "title": string,
+ "status": "Propuesta" | "Aceptada",
+ "context": string,
+ "dims": { "teamBoundaries":bool,"cognitiveLoad":bool,"interactionMode":bool,"dependencies":bool,"techArchitecture":bool,"governance":bool,"other":string },
+ "problem": string,
+ "actors": { "decide":string,"propone":string,"afectados":string,"consultados":string },
+ "alternatives": [ { "name":string,"description":string,"advantages":string,"disadvantages":string,"whyDiscarded":string } ],
+ "decision": { "option": "A"|"B"|"C"|"D"|"E"|"F"|"", "rationale":string },
+ "tradeoffs": [string],
+ "alarms": [string],
+ "contingency": string,
+ "meta": { "decisionDate":string,"reviewDate":string,"author":string,"sessionOrigin":string }
+}
+"decision.option" es la letra de la alternativa elegida según su orden en el array "alternatives" (la 1ª = "A").`;
+
+  // El prompt de sistema canónico vive en la Netlify Function
+  // (netlify/functions/generate.mjs). El cliente solo envía la transcripción;
+  // así la lógica del generador no es manipulable desde el navegador.
+  function getToken(){ try { return localStorage.getItem(TOKEN_KEY)||''; } catch(e){ return ''; } }
+  function setToken(t){ try { t ? localStorage.setItem(TOKEN_KEY,t) : localStorage.removeItem(TOKEN_KEY); } catch(e){} }
+
+  async function generateFromTranscript(transcript){
+    const headers = { "Content-Type":"application/json" };
+    const tk = getToken();
+    if(tk) headers["x-app-token"] = tk;
+
+    const resp = await fetch(GEN_ENDPOINT, {
+      method:"POST",
+      headers,
+      body: JSON.stringify({ transcript })
+    });
+
+    if(resp.status===401){ const err=new Error("Acceso protegido: introduce la clave de la herramienta."); err.code="AUTH"; throw err; }
+    if(!resp.ok || !resp.body){
+      let msg = "El servidor respondió con estado "+resp.status;
+      try { const j=await resp.json(); if(j && j.error) msg=j.error; } catch(e){}
+      throw new Error(msg);
+    }
+
+    // El proxy reenvía el stream SSE de Anthropic; acumulamos el texto.
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf="", full="";
+    while(true){
+      const { done, value } = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, { stream:true });
+      let nl;
+      while((nl = buf.indexOf("\n")) >= 0){
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl+1);
+        if(!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if(!payload || payload==="[DONE]") continue;
+        try {
+          const j = JSON.parse(payload);
+          if(j.type==="content_block_delta" && j.delta && j.delta.type==="text_delta") full += j.delta.text;
+          else if(j.type==="error") throw new Error((j.error&&j.error.message)||"Error en el stream del modelo");
+        } catch(e){ if(e instanceof Error && /stream/.test(e.message)) throw e; /* ignora keepalives no-JSON */ }
+      }
+    }
+
+    let text = full.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+    const s = text.indexOf('{'), e = text.lastIndexOf('}');
+    if(s<0||e<0) throw new Error("La respuesta del modelo no contenía JSON válido.");
+    return JSON.parse(text.slice(s,e+1));
+  }
+  function mergeGenerated(g){
+    const c = blank();
+    c.title = g.title||'';
+    c.status = (g.status==='Aceptada')?'Aceptada':'Propuesta';
+    c.context = g.context||'';
+    if(g.dims) DIMS.forEach(([k])=>{ c.dims[k]=!!g.dims[k]; });
+    if(g.dims && typeof g.dims.other==='string') c.dims.other=g.dims.other;
+    c.problem = g.problem||'';
+    if(g.actors) Object.assign(c.actors, {
+      decide:g.actors.decide||'', propone:g.actors.propone||'',
+      afectados:g.actors.afectados||'', consultados:g.actors.consultados||'' });
+    if(Array.isArray(g.alternatives) && g.alternatives.length){
+      c.alternatives = g.alternatives.map(a=>({
+        name:a.name||'', description:a.description||'', advantages:a.advantages||'',
+        disadvantages:a.disadvantages||'', whyDiscarded:a.whyDiscarded||'' }));
+    }
+    if(g.decision){ c.decision.option=g.decision.option||''; c.decision.rationale=g.decision.rationale||''; }
+    c.tradeoffs = (Array.isArray(g.tradeoffs)&&g.tradeoffs.length)? g.tradeoffs.slice() : [''];
+    c.alarms = (Array.isArray(g.alarms)&&g.alarms.length)? g.alarms.slice() : [''];
+    c.contingency = g.contingency||'';
+    if(g.meta) Object.assign(c.meta, {
+      decisionDate:g.meta.decisionDate||'', reviewDate:g.meta.reviewDate||'',
+      author:g.meta.author||'', sessionOrigin:g.meta.sessionOrigin||'' });
+    return c;
+  }
+
+  /* ---------- Render ---------- */
+  function render(){
+    root.innerHTML = `
+      <div class="wrap">
+        <div class="masthead">
+          <div class="brand">
+            <h1>STADR</h1>
+            <div class="sub">Socio-Technical Architecture Decision Records</div>
+          </div>
+          <div class="meta">v1.0 · webApp<br/>LLM vía Netlify Function · datos en este navegador</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn primary" id="newBtn">+ Nueva decisión</button>
+          <button class="btn" id="genBtn">⌁ Generar desde transcripción</button>
+          <div class="spacer"></div>
+          <span class="count">${state.index.length} STADR almacenado${state.index.length===1?'':'s'}</span>
+        </div>
+        <div class="layout">
+          <div class="catalog">
+            <div class="catalog-h">Catálogo</div>
+            <div id="catList"></div>
+          </div>
+          <div class="panel"><div id="panelBody"></div></div>
+        </div>
+      </div>`;
+
+    root.querySelector('#newBtn').onclick = ()=>openEditor(blank());
+    root.querySelector('#genBtn').onclick = openGenerator;
+    renderCatalog();
+    renderPanel();
+    if(state.modal) renderModal();
+  }
+
+  function renderCatalog(){
+    const el = root.querySelector('#catList');
+    if(!state.index.length){
+      el.innerHTML = `<div class="empty-cat">Aún no hay decisiones.<br/>Crea una nueva o genérala desde una transcripción.</div>`;
+      return;
+    }
+    el.innerHTML = state.index.map(r=>{
+      const active = state.current && state.current.id===r.id ? ' active':'';
+      return `<div class="rec${active}" data-id="${r.id}">
+        <div class="num">STADR-${esc(r.number)||'XXX'}</div>
+        <div class="ttl">${esc(r.title)||'(sin título)'}</div>
+        <div class="foot">
+          <span class="badge ${r.status}">${esc(r.status)}</span>
+          <span class="date">${fmtDate(r.updatedAt)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('.rec').forEach(n=>{
+      n.onclick = async ()=>{
+        if(state.dirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return;
+        const rec = await loadRec(n.dataset.id);
+        if(rec) openEditor(rec);
+      };
+    });
+  }
+
+  function openEditor(rec){ state.current=rec; state.dirty=false; renderCatalog(); renderPanel(); }
+
+  function renderPanel(){
+    const el = root.querySelector('#panelBody');
+    if(!state.current){
+      el.innerHTML = `<div class="placeholder">
+        <div class="mark">§</div>
+        <h3>Ningún STADR abierto</h3>
+        <p>Documenta una decisión sociotécnica manualmente, o pega la transcripción de una sesión y deja que el agente genere el borrador para tu revisión.</p>
+      </div>`;
+      return;
+    }
+    const c = state.current;
+    el.innerHTML = `<div class="panel-pad">${editorHTML(c)}</div>`;
+    bindEditor();
+  }
+
+  function editorHTML(c){
+    const dimRow = DIMS.map(([k,label])=>`
+      <label class="dim ${c.dims[k]?'checked':''}" data-dim="${k}">
+        <input type="checkbox" data-k="dims.${k}" ${c.dims[k]?'checked':''}/>
+        <span>${label}</span>
+      </label>`).join('');
+
+    const altHTML = c.alternatives.map((a,i)=>`
+      <div class="alt" data-ai="${i}">
+        ${c.alternatives.length>2?`<button class="btn ghost sm rm" data-rmalt="${i}">Eliminar</button>`:''}
+        <div class="alt-tag">Opción ${LETTERS[i]||(i+1)}</div>
+        <input type="text" placeholder="Nombre de la alternativa" data-alt="${i}.name" value="${esc(a.name)}"/>
+        <span class="mini-lbl">Descripción breve</span>
+        <textarea data-alt="${i}.description" placeholder="¿En qué consiste?">${esc(a.description)}</textarea>
+        <div class="row2">
+          <div><span class="mini-lbl">Ventajas</span>
+            <textarea data-alt="${i}.advantages">${esc(a.advantages)}</textarea></div>
+          <div><span class="mini-lbl">Inconvenientes</span>
+            <textarea data-alt="${i}.disadvantages">${esc(a.disadvantages)}</textarea></div>
+        </div>
+        <span class="mini-lbl">Por qué se descartó <span style="font-weight:400;text-transform:none;font-style:italic">(vacío si es la elegida)</span></span>
+        <textarea data-alt="${i}.whyDiscarded">${esc(a.whyDiscarded)}</textarea>
+      </div>`).join('');
+
+    const optChoices = c.alternatives.map((a,i)=>`<option value="${LETTERS[i]}" ${c.decision.option===LETTERS[i]?'selected':''}>Opción ${LETTERS[i]} — ${esc(a.name)||'(sin nombre)'}</option>`).join('');
+
+    const liList = (arr, key, ph) => arr.map((v,i)=>`
+      <div class="li-row">
+        <span class="bullet">—</span>
+        <textarea data-li="${key}.${i}" placeholder="${ph}">${esc(v)}</textarea>
+        <button class="btn ghost sm" data-rmli="${key}.${i}" ${arr.length<=1?'disabled':''}>×</button>
+      </div>`).join('');
+
+    return `
+      <div class="ed-head">
+        <div class="title-block">
+          <div class="field-num">
+            STADR-<input type="text" data-k="number" value="${esc(c.number)}" maxlength="6"/>
+          </div>
+          <input class="title-input" type="text" data-k="title" placeholder="Título breve de la decisión" value="${esc(c.title)}"/>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select data-k="status" style="width:auto;font-size:12.5px">
+            ${STATES.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${STATE_LABEL[s]}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">01</span><h2>Contexto</h2></div>
+        <p class="hint">Situación organizativa/técnica que hace necesaria la decisión: estructura de equipos, dependencias, restricciones, presión externa. Debe ser autosuficiente.</p>
+        <textarea data-k="context" style="min-height:120px">${esc(c.context)}</textarea>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">02</span><h2>Dimensión sociotécnica</h2></div>
+        <p class="hint">Marca todos los aspectos en juego.</p>
+        <div class="dims">
+          ${dimRow}
+          <div class="dim-other">
+            <span style="font-size:13.5px;color:var(--ink-soft)">Otro:</span>
+            <input type="text" data-k="dims.other" placeholder="especifica si aplica" value="${esc(c.dims.other)}"/>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">03</span><h2>Problema</h2></div>
+        <p class="hint">Una sola frase: ¿qué decisión hay que tomar y por qué no puede posponerse?</p>
+        <textarea data-k="problem">${esc(c.problem)}</textarea>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">04</span><h2>Actores</h2></div>
+        <table class="grid"><tbody>
+          <tr><td class="lbl">Decide</td><td><input type="text" data-k="actors.decide" value="${esc(c.actors.decide)}"/></td></tr>
+          <tr><td class="lbl">Propone</td><td><input type="text" data-k="actors.propone" value="${esc(c.actors.propone)}"/></td></tr>
+          <tr><td class="lbl">Afectados</td><td><input type="text" data-k="actors.afectados" value="${esc(c.actors.afectados)}"/></td></tr>
+          <tr><td class="lbl">Consultados</td><td><input type="text" data-k="actors.consultados" value="${esc(c.actors.consultados)}"/></td></tr>
+        </tbody></table>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">05</span><h2>Alternativas evaluadas</h2></div>
+        <p class="hint">No inventes opciones que no se discutieron. Para la opción elegida, deja "por qué se descartó" vacío.</p>
+        ${altHTML}
+        <button class="add-row" id="addAlt">+ Añadir alternativa</button>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">06</span><h2>Decisión</h2></div>
+        <div class="decision-box">
+          <div class="pick">
+            <label>Alternativa seleccionada:</label>
+            <select data-k="decision.option">
+              <option value="">— Selecciona —</option>
+              ${optChoices}
+            </select>
+          </div>
+          <span class="mini-lbl">Rationale</span>
+          <textarea data-k="decision.rationale" style="min-height:90px" placeholder="¿Por qué esta opción es la más adecuada dado el contexto y los criterios que importan?">${esc(c.decision.rationale)}</textarea>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">07</span><h2>Trade-offs aceptados</h2></div>
+        <p class="hint">Lo que se sacrifica conscientemente. Sé específico.</p>
+        <div id="tradeoffs">${liList(c.tradeoffs,'tradeoffs','Trade-off aceptado…')}</div>
+        <button class="add-row" data-addli="tradeoffs">+ Añadir trade-off</button>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">08</span><h2>Señales de alarma</h2></div>
+        <p class="hint">Indicadores observables (no métricas abstractas) de que la decisión está fallando.</p>
+        <div id="alarms">${liList(c.alarms,'alarms','Si ocurre X… / Si en N semanas no vemos Y…')}</div>
+        <button class="add-row" data-addli="alarms">+ Añadir señal</button>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">09</span><h2>Plan de contingencia</h2>
+          <span style="font-size:11px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace">opcional</span></div>
+        <p class="hint">Si las señales de alarma se activan, ¿qué hacemos? Déjalo vacío si no aplica.</p>
+        <textarea data-k="contingency">${esc(c.contingency)}</textarea>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span class="n">10</span><h2>Revisión y metadatos</h2></div>
+        <table class="grid"><tbody>
+          <tr><td class="lbl">Fecha de decisión</td><td><input type="text" data-k="meta.decisionDate" placeholder="AAAA-MM-DD" value="${esc(c.meta.decisionDate)}"/></td></tr>
+          <tr><td class="lbl">Revisar en</td><td><input type="text" data-k="meta.reviewDate" placeholder="AAAA-MM-DD o [hito]" value="${esc(c.meta.reviewDate)}"/></td></tr>
+          <tr><td class="lbl">Autor/a</td><td><input type="text" data-k="meta.author" value="${esc(c.meta.author)}"/></td></tr>
+          <tr><td class="lbl">Sesión de origen</td><td><input type="text" data-k="meta.sessionOrigin" placeholder="referencia o enlace" value="${esc(c.meta.sessionOrigin)}"/></td></tr>
+          <tr><td class="lbl">Reemplaza a</td><td><input type="text" data-k="meta.replaces" placeholder="STADR-NNN (si aplica)" value="${esc(c.meta.replaces)}"/></td></tr>
+          <tr><td class="lbl">Reemplazada por</td><td><input type="text" data-k="meta.replacedBy" placeholder="STADR-NNN (si aplica)" value="${esc(c.meta.replacedBy)}"/></td></tr>
+        </tbody></table>
+      </section>
+
+      <div class="footer-actions">
+        <button class="btn primary" id="saveBtn">Guardar</button>
+        <button class="btn" id="mdBtn">Ver Markdown</button>
+        <button class="btn ghost" id="dlBtn">Descargar .md</button>
+        <button class="btn ghost" id="copyBtn">Copiar Markdown</button>
+        <div class="spacer" style="flex:1"></div>
+        <span class="saved">✓ Guardado</span>
+        <button class="btn danger sm" id="delBtn">Eliminar</button>
+      </div>`;
+  }
+
+  function setPath(obj, path, val){
+    const p = path.split('.'); let o=obj;
+    for(let i=0;i<p.length-1;i++) o=o[p[i]];
+    o[p[p.length-1]] = val;
+  }
+
+  function bindEditor(){
+    const c = state.current;
+
+    root.querySelectorAll('[data-k]').forEach(inp=>{
+      const ev = inp.type==='checkbox'||inp.tagName==='SELECT' ? 'change':'input';
+      inp.addEventListener(ev, ()=>{
+        const path = inp.dataset.k;
+        const val = inp.type==='checkbox' ? inp.checked : inp.value;
+        setPath(c, path, val);
+        syncDirty();
+        if(path.startsWith('dims.') && inp.type==='checkbox'){
+          const lab = inp.closest('.dim'); if(lab) lab.classList.toggle('checked', inp.checked);
+        }
+        if(path==='status'){ /* badge updates on save/catalog */ }
+        if(path.startsWith('alternatives')||path==='decision.option'){}
+      });
+    });
+
+    root.querySelectorAll('[data-alt]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const [idx,field] = inp.dataset.alt.split('.');
+        c.alternatives[+idx][field] = inp.value;
+        syncDirty();
+      });
+    });
+
+    root.querySelectorAll('[data-li]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const [key,i] = inp.dataset.li.split('.');
+        c[key][+i] = inp.value;
+        syncDirty();
+      });
+    });
+
+    const addAlt = root.querySelector('#addAlt');
+    if(addAlt) addAlt.onclick = ()=>{ pullDom(); c.alternatives.push(altBlank()); state.dirty=true; renderPanel(); };
+
+    root.querySelectorAll('[data-rmalt]').forEach(b=>{
+      b.onclick = ()=>{ pullDom(); c.alternatives.splice(+b.dataset.rmalt,1); state.dirty=true; renderPanel(); };
+    });
+
+    root.querySelectorAll('[data-addli]').forEach(b=>{
+      b.onclick = ()=>{ pullDom(); c[b.dataset.addli].push(''); state.dirty=true; renderPanel(); };
+    });
+    root.querySelectorAll('[data-rmli]').forEach(b=>{
+      b.onclick = ()=>{ pullDom(); const [key,i]=b.dataset.rmli.split('.'); c[key].splice(+i,1); state.dirty=true; renderPanel(); };
+    });
+
+    root.querySelector('#saveBtn').onclick = async ()=>{
+      pullDom();
+      const ok = await saveCurrent();
+      if(ok){ renderCatalog(); const s=root.querySelector('.saved'); if(s) s.classList.add('show'); toast('STADR guardado'); }
+      else toast('Error al guardar');
+    };
+    root.querySelector('#mdBtn').onclick = ()=>{ pullDom(); openMarkdownPreview(toMarkdown(c)); };
+    root.querySelector('#dlBtn').onclick = ()=>{
+      pullDom();
+      const md = toMarkdown(c);
+      const fn = `STADR-${c.number||'XXX'}-${slug(c.title)}.md`;
+      const blob = new Blob([md],{type:'text/markdown'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Descargado: '+fn);
+    };
+    root.querySelector('#copyBtn').onclick = async ()=>{
+      pullDom();
+      try { await navigator.clipboard.writeText(toMarkdown(c)); toast('Markdown copiado al portapapeles'); }
+      catch(e){ toast('No se pudo copiar'); }
+    };
+    root.querySelector('#delBtn').onclick = async ()=>{
+      if(!confirm(`¿Eliminar definitivamente STADR-${c.number} "${c.title||'(sin título)'}"? Esta acción no se puede deshacer.`)) return;
+      await deleteRec(c.id);
+      state.dirty=false; renderCatalog(); renderPanel();
+      toast('STADR eliminado');
+    };
+  }
+
+  // Sync any DOM input values into state before a re-render
+  function pullDom(){
+    const c = state.current; if(!c) return;
+    root.querySelectorAll('[data-k]').forEach(inp=>{
+      const val = inp.type==='checkbox'? inp.checked : inp.value;
+      setPath(c, inp.dataset.k, val);
+    });
+    root.querySelectorAll('[data-alt]').forEach(inp=>{
+      const [idx,field]=inp.dataset.alt.split('.'); if(c.alternatives[+idx]) c.alternatives[+idx][field]=inp.value;
+    });
+    root.querySelectorAll('[data-li]').forEach(inp=>{
+      const [key,i]=inp.dataset.li.split('.'); if(c[key]) c[key][+i]=inp.value;
+    });
+  }
+
+  /* ---------- Modals ---------- */
+  function openGenerator(){ state.modal={ type:'gen', transcript:'', status:'', error:false }; renderModal(); }
+  function openMarkdownPreview(md){ state.modal={ type:'md', md }; renderModal(); }
+  function closeModal(){ state.modal=null; const o=root.querySelector('.overlay'); if(o) o.remove(); }
+
+  function renderModal(){
+    const old = root.querySelector('.overlay'); if(old) old.remove();
+    const m = state.modal; if(!m) return;
+    const ov = document.createElement('div'); ov.className='overlay';
+
+    if(m.type==='gen'){
+      ov.innerHTML = `
+        <div class="modal">
+          <div class="modal-h">
+            <h3>Generar STADR desde transcripción</h3>
+            <button class="x" id="mClose">×</button>
+          </div>
+          <div class="modal-b">
+            <p class="lead">Pega la transcripción de la sesión de arquitectura (texto, o audio ya transcrito). El agente extraerá la decisión sociotécnica y producirá un borrador en estado <strong>Propuesta</strong> para tu revisión humana.</p>
+            <textarea id="trans" placeholder="— [00:00] Mario: la cuestión es si movemos el servicio de pricing al equipo de underwriting o lo dejamos como XaaS…">${esc(m.transcript||'')}</textarea>
+            <div class="modal-foot">
+              <span class="status ${m.error?'err':''}" id="mStatus">${m.status||''}</span>
+              <button class="btn ghost" id="mCancel">Cancelar</button>
+              <button class="btn primary" id="mGen" ${state.busy?'disabled':''}>
+                ${state.busy?'<span class="spin"></span> Analizando…':'Generar borrador'}
+              </button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      ov.innerHTML = `
+        <div class="modal">
+          <div class="modal-h">
+            <h3>Vista previa Markdown</h3>
+            <button class="x" id="mClose">×</button>
+          </div>
+          <div class="modal-b">
+            <div class="md-prev">${esc(m.md)}</div>
+            <div class="modal-foot">
+              <div class="status">Conforme al template STADR v1.0</div>
+              <button class="btn ghost" id="mCopy">Copiar</button>
+              <button class="btn" id="mCancel">Cerrar</button>
+            </div>
+          </div>
+        </div>`;
+    }
+    root.appendChild(ov);
+    ov.addEventListener('mousedown', e=>{ if(e.target===ov && !state.busy) closeModal(); });
+    const cl=ov.querySelector('#mClose'), ca=ov.querySelector('#mCancel');
+    if(cl) cl.onclick=()=>{ if(!state.busy) closeModal(); };
+    if(ca) ca.onclick=()=>{ if(!state.busy) closeModal(); };
+
+    if(m.type==='gen'){
+      const ta=ov.querySelector('#trans');
+      ta.addEventListener('input',()=>{ m.transcript=ta.value; });
+      ov.querySelector('#mGen').onclick = async ()=>{
+        const txt=(m.transcript||'').trim();
+        if(txt.length<40){ m.error=true; m.status='La transcripción es demasiado corta.'; renderModal(); return; }
+        const run = async ()=>{
+          state.busy=true; m.error=false; m.status='Leyendo la sesión y extrayendo la decisión…'; renderModal();
+          try {
+            const g = await generateFromTranscript(txt);
+            const rec = mergeGenerated(g);
+            state.busy=false; closeModal();
+            openEditor(rec);
+            toast('Borrador generado · revísalo antes de aprobar');
+          } catch(err){
+            state.busy=false;
+            if(err && err.code==='AUTH'){
+              const pass = prompt('Esta herramienta está protegida. Introduce la clave de acceso:');
+              if(pass){ setToken(pass.trim()); return run(); }
+              m.error=true; m.status='Generación cancelada: clave de acceso no introducida.'; renderModal(); return;
+            }
+            m.error=true;
+            m.status='Error: '+(err.message||'no se pudo generar')+'. Revisa la conexión e inténtalo de nuevo.';
+            renderModal();
+          }
+        };
+        run();
+      };
+    } else {
+      const cp=ov.querySelector('#mCopy');
+      if(cp) cp.onclick=async ()=>{ try{ await navigator.clipboard.writeText(m.md); toast('Copiado'); }catch(e){ toast('No se pudo copiar'); } };
+    }
+  }
+
+  /* ---------- Init ---------- */
+  (async function init(){
+    root.innerHTML = `<div class="wrap"><div style="padding:80px;text-align:center;color:#8a8597;font-family:'IBM Plex Mono',monospace;font-size:13px"><span class="spin" style="border-color:#e9d2c6;border-top-color:#b6502b"></span> Cargando catálogo…</div></div>`;
+    await loadIndex();
+    render();
+  })();
+})();
+</script>

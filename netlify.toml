@@ -1,0 +1,22 @@
+# Configuración de Netlify para la webApp STADR.
+
+[build]
+  # Sitio estático: no hay paso de build, se publica la raíz.
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# El frontend llama a /api/generate; lo redirigimos a la función serverless.
+[[redirects]]
+  from = "/api/generate"
+  to = "/.netlify/functions/generate"
+  status = 200
+  force = true
+
+# Cualquier otra ruta sirve la app (SPA de una sola página).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
