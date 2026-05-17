@@ -1,108 +1,121 @@
-# STADR — WebApp desplegable en Netlify
+# STADR — WebApp (catálogo compartido + LLM)
 
-Herramienta para documentar y almacenar **Socio-Technical Architecture Decision
-Records**, con generación de borradores por LLM a partir de transcripciones de
-sesión.
+Herramienta para documentar, almacenar y **verificar** Socio-Technical
+Architecture Decision Records, con catálogo compartido en base de datos y
+generación/auditoría asistida por LLM.
 
 ```
 stadr-app/
-├── index.html                      ← la aplicación (UI + lógica + persistencia)
-├── netlify/
-│   └── functions/
-│       └── generate.mjs            ← proxy serverless al LLM (Anthropic)
-├── netlify.toml                    ← rutas y configuración de Netlify
-├── package.json                    ← versión de Node para las funciones
-└── README.md
+├── index.html                  ← la aplicación (UI + lógica)
+├── netlify/functions/
+│   ├── generate.mjs            ← genera STADR desde transcripción (streaming)
+│   ├── check.mjs               ← verifica conformidad + estructura un doc subido
+│   └── store.mjs               ← catálogo compartido (Netlify Blobs)
+├── netlify.toml                ← rutas /api/* y build
+├── package.json                ← dependencia @netlify/blobs
+├── .env.example                ← plantilla de variables
+└── .gitignore
 ```
 
-## Cómo funciona
+## Qué hace
 
-- **Frontend**: una sola página estática. Los STADR se guardan en el
-  `localStorage` del navegador (un solo usuario, sin base de datos).
-- **LLM**: el navegador NO llama a Anthropic directamente. Llama a
-  `/api/generate`, una Netlify Function que guarda la API key como variable
-  de entorno y reenvía la respuesta en *streaming*. El streaming es lo que
-  evita el límite de tiempo de las funciones síncronas.
+- **Documentar a mano**: editor con la estructura del template. Numeración
+  de secciones dinámica: las secciones opcionales (Trade-offs, Señales de
+  alarma, Plan de contingencia) se omiten si están vacías, igual que en el
+  ejemplo real STADR-001 (que va de 1.Contexto a 7.Revisión).
+- **Dimensión sociotécnica con matices**: cada dimensión marcada admite una
+  anotación breve ("Colaboración crónica", "no hay ownership end-to-end"),
+  tal como aparece en STADR-001.
+- **Generar desde transcripción**: pega la sesión, el LLM produce un borrador
+  en estado `Propuesta` para tu revisión humana.
+- **Subir y verificar archivo**: sube un STADR existente (`.md`, `.txt`,
+  `.pdf`, `.docx`). El texto se extrae en el navegador y el LLM emite un
+  informe de conformidad con el template (qué secciones están presentes,
+  incompletas o ausentes) y estructura el contenido para cargarlo al editor
+  y almacenarlo en el catálogo.
+- **Catálogo compartido**: todos los STADR viven en Netlify Blobs (la base
+  de datos integrada de Netlify), accesibles desde cualquier dispositivo y
+  por todo el equipo.
 
-## Despliegue (opción recomendada: Git + Netlify)
+## Conectar el LLM (la API key)
+
+La clave **no se incrusta en el código** — eso la expondría a cualquiera con
+acceso a la URL o al repositorio, que podría gastar tu crédito sin límite.
+La forma correcta y, en la práctica, igual de directa, es ponerla **una vez**
+como variable de entorno en Netlify. Las funciones la leen en el servidor; el
+navegador nunca la ve.
+
+## Despliegue (Git + Netlify, recomendado)
 
 1. Sube esta carpeta a un repositorio (GitHub/GitLab/Bitbucket).
-2. En Netlify: **Add new site → Import an existing project** y elige el repo.
-3. Build settings: deja **Build command** vacío y **Publish directory** en `.`
-   (ya viene definido en `netlify.toml`).
-4. **Site configuration → Environment variables**, añade:
+2. Netlify → **Add new site → Import an existing project** → elige el repo.
+3. Build settings: ya vienen en `netlify.toml` (build `npm install`,
+   publish `.`). No toques nada.
+4. **Site configuration → Environment variables** → añade:
 
    | Variable | Obligatoria | Valor |
    |---|---|---|
    | `ANTHROPIC_API_KEY` | Sí | Tu clave de la API de Anthropic |
-   | `ANTHROPIC_MODEL` | No | p. ej. `claude-sonnet-4-20250514` (por defecto) |
-   | `APP_ACCESS_TOKEN` | No | Una frase secreta para proteger el endpoint |
+   | `ANTHROPIC_MODEL` | No | por defecto `claude-sonnet-4-20250514` |
+   | `APP_ACCESS_TOKEN` | No (recom.) | Frase secreta que protege la app |
 
-5. **Deploy site**. Listo: `https://tu-sitio.netlify.app`.
+5. **Deploy site**. Netlify Blobs se activa solo, sin configuración extra.
 
-> Tras cambiar variables de entorno, vuelve a desplegar (**Trigger deploy**)
-> para que las funciones las recojan.
+> Tras crear o cambiar variables, **Trigger deploy** de nuevo para que las
+> funciones las recojan.
 
-### Alternativa rápida (sin Git): Netlify CLI
+El *drag & drop* de Netlify Drop NO sirve (no incluye funciones ni Blobs).
+Usa Git o la CLI.
+
+### Alternativa: Netlify CLI
 
 ```bash
 npm install -g netlify-cli
 cd stadr-app
-netlify deploy --prod
-# luego define las variables en el panel de Netlify y vuelve a desplegar
+netlify deploy --build --prod
+# define las variables en el panel y vuelve a desplegar
 ```
-
-El *drag & drop* de Netlify Drop NO sirve aquí: no incluye las funciones
-serverless. Usa Git o la CLI.
-
-## Conectar el LLM
-
-El "LLM conectado" es la `ANTHROPIC_API_KEY` que pones como variable de
-entorno. Para cambiar de modelo, ajusta `ANTHROPIC_MODEL`.
-
-¿Otro proveedor (OpenAI, Azure, modelo propio)? Solo hay que editar
-`netlify/functions/generate.mjs`: cambiar la URL, las cabeceras de
-autenticación y el parseo del stream. El contrato con el frontend no cambia
-mientras la función siga devolviendo eventos SSE con el texto del modelo.
-
-## Proteger el endpoint (recomendado en producción)
-
-Sin protección, cualquiera con la URL puede gastar tu crédito de API.
-Define `APP_ACCESS_TOKEN` con una frase secreta. La primera vez que generes
-un borrador, la app pedirá esa clave y la recordará en este navegador.
 
 ## Probar en local
 
 ```bash
 npm install -g netlify-cli
 cd stadr-app
-ANTHROPIC_API_KEY=sk-ant-... netlify dev
-# abre http://localhost:8888
+cp .env.example .env      # rellena ANTHROPIC_API_KEY
+netlify dev               # http://localhost:8888
 ```
-`netlify dev` levanta el sitio y las funciones juntos, con las redirecciones
-de `netlify.toml`.
+`netlify dev` levanta la app, las funciones y un Blobs local con las
+redirecciones de `netlify.toml`.
 
-## Solución de problemas
+## Proteger la app (producción)
 
-- **"Falta ANTHROPIC_API_KEY"**: define la variable en Netlify y vuelve a
-  desplegar.
-- **401 / pide clave una y otra vez**: el valor de `APP_ACCESS_TOKEN` no
-  coincide con el que introduces. Para quitar la protección, borra la
-  variable y redespliega.
-- **Se corta a mitad de generación**: aumenta el timeout de la función
-  (Netlify → Functions; según el plan), o reduce el tamaño de la
-  transcripción. El streaming ya mitiga la mayoría de estos casos.
-- **El modelo devuelve algo que no es JSON**: reintenta; si persiste,
-  acorta la transcripción y deja solo el tramo donde se discute la decisión.
-- **Datos perdidos al cambiar de navegador/equipo**: es esperado, la
-  persistencia es local. Usa "Descargar .md" para versionar cada STADR en
-  Git, que es el destino recomendado en la guía STADR.
+Sin `APP_ACCESS_TOKEN`, cualquiera con la URL puede gastar tu crédito y ver
+o editar el catálogo. Define esa variable con una frase larga; la primera
+operación pedirá la clave y la recordará en ese navegador.
 
 ## Flujo de uso
 
-1. Sesión de arquitectura → transcripción.
-2. *Generar desde transcripción* → el LLM produce un borrador en estado
-   **Propuesta**.
-3. Revisión humana (~15 min): ¿hechos correctos?, ¿alternativas bien
-   representadas?, ¿trade-offs honestos?
-4. Cambia el estado a **Aceptada** y *Descargar .md* al repositorio.
+1. Sesión de arquitectura → transcripción → *Generar desde transcripción*.
+   O bien: documento STADR existente → *Subir y verificar archivo*.
+2. Revisión humana (~15 min): hechos, alternativas, trade-offs.
+3. Estado → `Aceptada`. Queda en el catálogo compartido y, si quieres,
+   *Descargar .md* al repositorio Git de arquitectura.
+
+## Solución de problemas
+
+- **"Falta ANTHROPIC_API_KEY"**: define la variable en Netlify y redespliega.
+- **No carga el catálogo / error de almacén**: solo funciona desplegado o
+  con `netlify dev` (Blobs no existe abriendo el HTML directamente).
+- **401 / pide la clave repetidamente**: el valor introducido no coincide
+  con `APP_ACCESS_TOKEN`. Para abrir el acceso, borra la variable y
+  redespliega.
+- **No extrae texto del PDF/DOCX**: PDFs escaneados (imágenes) no tienen
+  texto seleccionable; convéncelo a `.md`/`.txt` o usa OCR antes.
+- **Generación cortada**: el streaming mitiga el timeout; si persiste,
+  acorta la transcripción al tramo de la decisión.
+
+## Cambiar de proveedor de LLM
+
+Edita `generate.mjs` y `check.mjs`: URL, cabeceras de auth y parseo. El
+contrato con el frontend no cambia mientras se devuelva texto (SSE en
+generate, JSON en check).

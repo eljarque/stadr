@@ -2,8 +2,11 @@
   "name": "stadr-app",
   "version": "1.0.0",
   "private": true,
-  "description": "STADR — Socio-Technical Architecture Decision Records. WebApp desplegable en Netlify con generación asistida por LLM.",
+  "description": "STADR — Socio-Technical Architecture Decision Records. WebApp con catálogo compartido (Netlify Blobs) y generación/verificación por LLM.",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
   }
 }

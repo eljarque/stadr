@@ -174,15 +174,21 @@
   #stadr-root .sec-h h2 { font-family:'Fraunces',serif; font-size:19px; font-weight:600; }
   #stadr-root .hint { font-size:12px; color:var(--ink-faint); margin:6px 0 11px; font-style:italic; }
 
-  #stadr-root .dims { display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin-top:6px; }
-  @media (max-width:560px){ #stadr-root .dims { grid-template-columns:1fr; } }
+  #stadr-root .dims { display:grid; grid-template-columns:1fr; gap:4px; margin-top:6px; }
+  #stadr-root .dim-wrap { padding:4px 0; border-bottom:1px solid var(--line-soft); }
+  #stadr-root .dim-wrap:last-of-type { border-bottom:none; }
   #stadr-root .dim {
     display:flex; align-items:flex-start; gap:9px; font-size:13.5px; cursor:pointer;
-    padding:6px 0; color:var(--ink-soft);
+    padding:5px 0; color:var(--ink-soft);
   }
   #stadr-root .dim input { width:auto; margin-top:3px; accent-color:var(--accent); }
   #stadr-root .dim.checked { color:var(--ink); font-weight:500; }
-  #stadr-root .dim-other { display:flex; align-items:center; gap:10px; grid-column:1/-1; margin-top:2px; }
+  #stadr-root .dim-note {
+    margin:2px 0 6px 27px; width:calc(100% - 27px); font-size:13px;
+    background:#fff; border:1px solid var(--line); padding:6px 9px;
+  }
+  #stadr-root .dim-note::placeholder { font-style:italic; color:var(--ink-faint); }
+  #stadr-root .dim-other { display:flex; align-items:center; gap:10px; margin-top:8px; }
   #stadr-root .dim-other input[type=text]{ flex:1; }
 
   #stadr-root table.grid { width:100%; border-collapse:collapse; }
@@ -273,6 +279,35 @@
     padding:20px 22px; max-height:60vh; overflow:auto; color:var(--ink);
   }
 
+  #stadr-root .drop {
+    border:2px dashed var(--line); background:rgba(255,255,255,.5);
+    padding:30px 20px; text-align:center; cursor:pointer; transition:.15s; margin-bottom:16px;
+  }
+  #stadr-root .drop:hover, #stadr-root .drop.over { border-color:var(--accent); background:#fff; }
+  #stadr-root .drop-ic { font-family:'Fraunces',serif; font-size:32px; color:var(--accent-soft); margin-bottom:8px; }
+  #stadr-root .drop-inner { font-size:13.5px; color:var(--ink-soft); }
+  #stadr-root .drop-inner u { color:var(--accent); }
+  #stadr-root .drop-sub { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); margin-top:6px; }
+
+  #stadr-root .conf-head { display:flex; gap:16px; align-items:center; padding:16px 0; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  #stadr-root .conf-score {
+    font-family:'Fraunces',serif; font-size:34px; font-weight:600; line-height:1;
+    min-width:78px; text-align:center;
+  }
+  #stadr-root .conf-verdict { font-weight:600; font-size:14px; margin-bottom:3px; }
+  #stadr-root .conf-summary { font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+  #stadr-root .conf-ok, #stadr-root .conf-conforme { color:var(--ok); }
+  #stadr-root .conf-weak, #stadr-root .conf-parcial { color:var(--warn); }
+  #stadr-root .conf-missing, #stadr-root .conf-incompleto { color:#a23c2a; }
+  #stadr-root .conf-list { max-height:34vh; overflow:auto; }
+  #stadr-root .conf-row { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+  #stadr-root .conf-dot { width:9px; height:9px; border-radius:50%; margin-top:5px; flex-shrink:0; background:currentColor; }
+  #stadr-root .conf-tag {
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:600; text-transform:uppercase;
+    border:1px solid currentColor; padding:1px 6px; border-radius:2px; margin-left:8px; letter-spacing:.05em;
+  }
+  #stadr-root .conf-note { font-size:12px; color:var(--ink-soft); margin-top:4px; line-height:1.5; }
+
   #stadr-root .spin {
     width:15px; height:15px; border:2px solid var(--accent-soft); border-top-color:var(--accent);
     border-radius:50%; display:inline-block; animation:stadrspin .7s linear infinite; vertical-align:-2px;
@@ -299,13 +334,31 @@
   const TOKEN_KEY = 'stadr:access-token';
   const GEN_ENDPOINT = '/api/generate';
 
-  // Persistencia local del navegador. Reemplaza al window.storage del sandbox
-  // de Claude: en una webApp desplegada los datos viven en este equipo/navegador.
-  const storage = {
-    async get(k){ const v = localStorage.getItem(k); return v==null ? null : { key:k, value:v }; },
-    async set(k,v){ localStorage.setItem(k, v); return { key:k, value:v }; },
-    async delete(k){ localStorage.removeItem(k); return { key:k, deleted:true }; }
-  };
+  const STORE_ENDPOINT = '/api/store';
+
+  // Catálogo compartido: los STADR viven en el servidor (Netlify Blobs),
+  // accesibles desde cualquier dispositivo y por todo el equipo.
+  // apiStore() habla con la función serverless y reintenta una vez si el
+  // endpoint está protegido y aún no hay clave de acceso introducida.
+  async function apiStore(action, payload){
+    const headers = { "Content-Type":"application/json" };
+    const tk = getToken();
+    if(tk) headers["x-app-token"] = tk;
+    const res = await fetch(STORE_ENDPOINT, {
+      method:"POST", headers,
+      body: JSON.stringify(Object.assign({ action }, payload||{}))
+    });
+    if(res.status===401){
+      const pass = prompt('Catálogo protegido. Introduce la clave de acceso:');
+      if(!pass){ const e=new Error("Clave de acceso requerida."); e.code="AUTH"; throw e; }
+      setToken(pass.trim());
+      return apiStore(action, payload);
+    }
+    let data = {};
+    try { data = await res.json(); } catch(e){}
+    if(!res.ok) throw new Error(data.error || ("El almacén respondió "+res.status));
+    return data;
+  }
 
   const DIMS = [
     ['teamBoundaries','Límites de equipo / ownership'],
@@ -331,6 +384,8 @@
       context:'',
       dims:{ teamBoundaries:false,cognitiveLoad:false,interactionMode:false,
              dependencies:false,techArchitecture:false,governance:false, other:'' },
+      dimNotes:{ teamBoundaries:'',cognitiveLoad:'',interactionMode:'',
+                 dependencies:'',techArchitecture:'',governance:'' },
       problem:'',
       actors:{ decide:'', propone:'', afectados:'', consultados:'' },
       alternatives:[ altBlank(), altBlank() ],
@@ -344,40 +399,35 @@
   }
   function altBlank(){ return { name:'', description:'', advantages:'', disadvantages:'', whyDiscarded:'' }; }
 
-  /* ---------- Storage ---------- */
+  /* ---------- Store (servidor compartido) ---------- */
   async function loadIndex(){
-    try {
-      const r = await storage.get(IDX_KEY);
-      state.index = r && r.value ? JSON.parse(r.value) : [];
-    } catch(e){ state.index = []; }
-  }
-  async function saveIndex(){
-    try { await storage.set(IDX_KEY, JSON.stringify(state.index)); }
-    catch(e){ console.error('index save', e); }
+    const r = await apiStore('list');
+    state.index = Array.isArray(r.items) ? r.items : [];
   }
   async function loadRec(id){
-    try { const r = await storage.get(REC_KEY(id)); return r && r.value ? JSON.parse(r.value) : null; }
-    catch(e){ return null; }
+    try { const r = await apiStore('get', { id }); return r.record || null; }
+    catch(e){ console.error(e); return null; }
   }
   async function saveCurrent(){
     const c = state.current; if(!c) return false;
     c.updatedAt = Date.now();
     try {
-      await storage.set(REC_KEY(c.id), JSON.stringify(c));
+      const r = await apiStore('put', { record:c });
+      if(r.record && r.record.updatedAt) c.updatedAt = r.record.updatedAt;
       const meta = { id:c.id, number:c.number, title:c.title||'(sin título)', status:c.status, updatedAt:c.updatedAt };
       const i = state.index.findIndex(x=>x.id===c.id);
       if(i>=0) state.index[i]=meta; else state.index.unshift(meta);
-      state.index.sort((a,b)=>b.updatedAt-a.updatedAt);
-      await saveIndex();
+      state.index.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
       state.dirty=false;
       return true;
     } catch(e){ console.error(e); return false; }
   }
   async function deleteRec(id){
-    try { await storage.delete(REC_KEY(id)); } catch(e){}
+    try { await apiStore('delete', { id }); }
+    catch(e){ console.error(e); return false; }
     state.index = state.index.filter(x=>x.id!==id);
-    await saveIndex();
     if(state.current && state.current.id===id) state.current=null;
+    return true;
   }
 
   /* ---------- Helpers ---------- */
@@ -392,58 +442,77 @@
   /* ---------- Markdown export (matches template exactly) ---------- */
   function toMarkdown(c){
     const L = [];
+    let n = 0;
+    const H = t => { n++; L.push(`## ${n}. ${t}`); L.push(''); };
+    const RULE = () => { L.push(''); L.push('---'); L.push(''); };
+
     L.push(`# STADR-${c.number||'XXX'}: ${c.title||'[Título breve de la decisión]'}`);
     L.push('');
     L.push('> **Socio-Technical Architecture Decision Record**');
     L.push(`> Versión: ${c.version||'1.0'} | Estado: \`${STATE_LABEL[c.status]||c.status}\``);
-    L.push(''); L.push('---'); L.push('');
-    L.push('## 1. Contexto'); L.push(''); L.push(c.context.trim()||'_Pendiente._'); L.push(''); L.push('---'); L.push('');
-    L.push('## 2. Dimensión sociotécnica'); L.push('');
-    DIMS.forEach(([k,label])=> L.push(`- [${c.dims[k]?'x':' '}] ${label}`));
-    L.push(`- [${c.dims.other && c.dims.other.trim()?'x':' '}] Otro: ${c.dims.other && c.dims.other.trim()? c.dims.other.trim() : '___'}`);
-    L.push(''); L.push('---'); L.push('');
-    L.push('## 3. Problema'); L.push(''); L.push(c.problem.trim()||'_Pendiente._'); L.push(''); L.push('---'); L.push('');
-    L.push('## 4. Actores'); L.push('');
+    RULE();
+
+    H('Contexto'); L.push(c.context.trim()||'_Pendiente._'); RULE();
+
+    H('Dimensión sociotécnica');
+    DIMS.forEach(([k,label])=>{
+      if(!c.dims[k]) return;
+      const note = (c.dimNotes && c.dimNotes[k] || '').trim();
+      L.push(`- ${label}${note ? ' ('+note+')' : ''}`);
+    });
+    if(c.dims.other && c.dims.other.trim()) L.push(`- Otro: ${c.dims.other.trim()}`);
+    if(!DIMS.some(([k])=>c.dims[k]) && !(c.dims.other&&c.dims.other.trim())) L.push('_Sin marcar._');
+    RULE();
+
+    H('Problema'); L.push(c.problem.trim()||'_Pendiente._'); RULE();
+
+    H('Actores');
     L.push('| Rol | Nombre / Equipo |'); L.push('|-----|----------------|');
     L.push(`| Decide | ${c.actors.decide||''} |`);
     L.push(`| Propone | ${c.actors.propone||''} |`);
     L.push(`| Afectados | ${c.actors.afectados||''} |`);
     L.push(`| Consultados | ${c.actors.consultados||''} |`);
-    L.push(''); L.push('---'); L.push('');
-    L.push('## 5. Alternativas evaluadas'); L.push('');
+    RULE();
+
+    const sel = c.decision.option;
+    const selIdx = sel!=='' ? LETTERS.indexOf(sel) : -1;
+    H('Alternativas evaluadas');
     c.alternatives.forEach((a,i)=>{
       L.push(`### Opción ${LETTERS[i]||(i+1)} — ${a.name||'[Nombre]'}`);
-      if(a.description.trim()){ L.push(a.description.trim()); }
+      if(a.description.trim()) L.push(a.description.trim());
       L.push(`**Ventajas:** ${a.advantages.trim()||'…'}`);
       L.push(`**Inconvenientes:** ${a.disadvantages.trim()||'…'}`);
-      L.push(`**Por qué se descartó:** ${a.whyDiscarded.trim()||'…'}`);
+      const isChosen = i===selIdx;
+      const lbl = isChosen ? 'Por qué se mantiene como opción preferida' : 'Por qué se descartó';
+      L.push(`**${lbl}:** ${a.whyDiscarded.trim()||'…'}`);
       L.push('');
     });
     L.push('---'); L.push('');
-    L.push('## 6. Decisión'); L.push('');
-    const sel = c.decision.option;
+
+    H('Decisión');
     let selName='';
-    if(sel!==''){ const ai=LETTERS.indexOf(sel); if(ai>=0 && c.alternatives[ai]) selName=c.alternatives[ai].name; }
+    if(selIdx>=0 && c.alternatives[selIdx]) selName=c.alternatives[selIdx].name;
     L.push(`**Alternativa seleccionada: Opción ${sel||'[X]'} — ${selName||'[Nombre]'}**`);
-    L.push(''); L.push(c.decision.rationale.trim()||'_Rationale pendiente._'); L.push(''); L.push('---'); L.push('');
-    L.push('## 7. Trade-offs aceptados'); L.push('');
-    const tos=c.tradeoffs.filter(t=>t.trim());
-    (tos.length?tos:['…']).forEach(t=>L.push(`- ${t.trim()}`));
-    L.push(''); L.push('---'); L.push('');
-    L.push('## 8. Señales de alarma'); L.push('');
-    const al=c.alarms.filter(a=>a.trim());
-    (al.length?al:['…']).forEach(a=>L.push(`- ${a.trim()}`));
-    L.push(''); L.push('---'); L.push('');
-    L.push('## 9. Plan de contingencia'); L.push('');
-    L.push(c.contingency.trim()||'No aplica.'); L.push(''); L.push('---'); L.push('');
-    L.push('## 10. Revisión'); L.push('');
+    L.push(''); L.push(c.decision.rationale.trim()||'_Rationale pendiente._'); RULE();
+
+    // Secciones opcionales: se omiten por completo si están vacías
+    // (el STADR real STADR-001 no las incluye).
+    const tos = c.tradeoffs.filter(t=>t.trim());
+    if(tos.length){ H('Trade-offs aceptados'); tos.forEach(t=>L.push(`- ${t.trim()}`)); RULE(); }
+
+    const al = c.alarms.filter(a=>a.trim());
+    if(al.length){ H('Señales de alarma'); al.forEach(a=>L.push(`- ${a.trim()}`)); RULE(); }
+
+    if(c.contingency.trim()){ H('Plan de contingencia'); L.push(c.contingency.trim()); RULE(); }
+
+    H('Revisión');
     L.push('| Campo | Valor |'); L.push('|-------|-------|');
     L.push(`| Fecha de decisión | ${c.meta.decisionDate||'AAAA-MM-DD'} |`);
     L.push(`| Revisar en | ${c.meta.reviewDate||'AAAA-MM-DD o [hito]'} |`);
     L.push(`| Autor/a | ${c.meta.author||''} |`);
     L.push(`| Sesión de origen | ${c.meta.sessionOrigin||''} |`);
-    L.push(`| Reemplaza a | ${c.meta.replaces||''} |`);
-    L.push(`| Reemplazada por | ${c.meta.replacedBy||''} |`);
+    L.push(`| Reemplaza a | ${c.meta.replaces||'—'} |`);
+    L.push(`| Reemplazada por | ${c.meta.replacedBy||'—'} |`);
     L.push('');
     return L.join('\n');
   }
@@ -542,6 +611,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
     c.context = g.context||'';
     if(g.dims) DIMS.forEach(([k])=>{ c.dims[k]=!!g.dims[k]; });
     if(g.dims && typeof g.dims.other==='string') c.dims.other=g.dims.other;
+    if(g.dimNotes) DIMS.forEach(([k])=>{ if(typeof g.dimNotes[k]==='string') c.dimNotes[k]=g.dimNotes[k]; });
     c.problem = g.problem||'';
     if(g.actors) Object.assign(c.actors, {
       decide:g.actors.decide||'', propone:g.actors.propone||'',
@@ -555,9 +625,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
     c.tradeoffs = (Array.isArray(g.tradeoffs)&&g.tradeoffs.length)? g.tradeoffs.slice() : [''];
     c.alarms = (Array.isArray(g.alarms)&&g.alarms.length)? g.alarms.slice() : [''];
     c.contingency = g.contingency||'';
+    if(g.number) c.number = String(g.number);
     if(g.meta) Object.assign(c.meta, {
       decisionDate:g.meta.decisionDate||'', reviewDate:g.meta.reviewDate||'',
-      author:g.meta.author||'', sessionOrigin:g.meta.sessionOrigin||'' });
+      author:g.meta.author||'', sessionOrigin:g.meta.sessionOrigin||'',
+      replaces:g.meta.replaces||'', replacedBy:g.meta.replacedBy||'' });
     return c;
   }
 
@@ -570,13 +642,14 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
             <h1>STADR</h1>
             <div class="sub">Socio-Technical Architecture Decision Records</div>
           </div>
-          <div class="meta">v1.0 · webApp<br/>LLM vía Netlify Function · datos en este navegador</div>
+          <div class="meta">v1.0 · webApp · catálogo compartido<br/>LLM vía Netlify Function</div>
         </div>
         <div class="toolbar">
           <button class="btn primary" id="newBtn">+ Nueva decisión</button>
           <button class="btn" id="genBtn">⌁ Generar desde transcripción</button>
+          <button class="btn" id="upBtn">↥ Subir y verificar archivo</button>
           <div class="spacer"></div>
-          <span class="count">${state.index.length} STADR almacenado${state.index.length===1?'':'s'}</span>
+          <span class="count">${state.index.length} STADR en el catálogo</span>
         </div>
         <div class="layout">
           <div class="catalog">
@@ -589,6 +662,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
 
     root.querySelector('#newBtn').onclick = ()=>openEditor(blank());
     root.querySelector('#genBtn').onclick = openGenerator;
+    root.querySelector('#upBtn').onclick = openVerifier;
     renderCatalog();
     renderPanel();
     if(state.modal) renderModal();
@@ -639,10 +713,16 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
 
   function editorHTML(c){
     const dimRow = DIMS.map(([k,label])=>`
-      <label class="dim ${c.dims[k]?'checked':''}" data-dim="${k}">
-        <input type="checkbox" data-k="dims.${k}" ${c.dims[k]?'checked':''}/>
-        <span>${label}</span>
-      </label>`).join('');
+      <div class="dim-wrap">
+        <label class="dim ${c.dims[k]?'checked':''}" data-dim="${k}">
+          <input type="checkbox" data-k="dims.${k}" ${c.dims[k]?'checked':''}/>
+          <span>${label}</span>
+        </label>
+        <input type="text" class="dim-note" data-k="dimNotes.${k}"
+          placeholder="matiz (ej: arquitectura por capas horizontales)"
+          value="${esc((c.dimNotes&&c.dimNotes[k])||'')}"
+          style="${c.dims[k]?'':'display:none'}"/>
+      </div>`).join('');
 
     const altHTML = c.alternatives.map((a,i)=>`
       <div class="alt" data-ai="${i}">
@@ -693,7 +773,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
 
       <section class="sec">
         <div class="sec-h"><span class="n">02</span><h2>Dimensión sociotécnica</h2></div>
-        <p class="hint">Marca todos los aspectos en juego.</p>
+        <p class="hint">Marca los aspectos en juego; añade un matiz breve a cada uno (como en STADR-001: "Colaboración crónica", "no hay ownership end-to-end").</p>
         <div class="dims">
           ${dimRow}
           <div class="dim-other">
@@ -802,7 +882,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         setPath(c, path, val);
         syncDirty();
         if(path.startsWith('dims.') && inp.type==='checkbox'){
-          const lab = inp.closest('.dim'); if(lab) lab.classList.toggle('checked', inp.checked);
+          const wrap = inp.closest('.dim-wrap');
+          if(wrap){
+            const lab = wrap.querySelector('.dim'); if(lab) lab.classList.toggle('checked', inp.checked);
+            const note = wrap.querySelector('.dim-note'); if(note) note.style.display = inp.checked ? '' : 'none';
+          }
         }
         if(path==='status'){ /* badge updates on save/catalog */ }
         if(path.startsWith('alternatives')||path==='decision.option'){}
@@ -886,7 +970,54 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
   /* ---------- Modals ---------- */
   function openGenerator(){ state.modal={ type:'gen', transcript:'', status:'', error:false }; renderModal(); }
   function openMarkdownPreview(md){ state.modal={ type:'md', md }; renderModal(); }
+  function openVerifier(){ state.modal={ type:'verify', file:null, text:'', result:null, status:'', error:false }; renderModal(); }
   function closeModal(){ state.modal=null; const o=root.querySelector('.overlay'); if(o) o.remove(); }
+
+  // Carga perezosa de librerías desde CDN (solo en el sitio desplegado).
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(document.querySelector(`script[src="${src}"]`)) return res();
+      const s=document.createElement('script'); s.src=src;
+      s.onload=()=>res(); s.onerror=()=>rej(new Error('No se pudo cargar '+src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function extractFileText(file){
+    const name=(file.name||'').toLowerCase();
+    if(/\.(md|txt|json|markdown)$/.test(name)) return await file.text();
+    if(/\.pdf$/.test(name)){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      const pdfjs=window.pdfjsLib;
+      pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const buf=await file.arrayBuffer();
+      const doc=await pdfjs.getDocument({data:buf}).promise;
+      let out='';
+      for(let p=1;p<=doc.numPages;p++){
+        const pg=await doc.getPage(p);
+        const tc=await pg.getTextContent();
+        out += tc.items.map(it=>it.str).join(' ')+'\n\n';
+      }
+      return out.trim();
+    }
+    if(/\.docx$/.test(name)){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+      const buf=await file.arrayBuffer();
+      const r=await window.mammoth.extractRawText({arrayBuffer:buf});
+      return (r&&r.value||'').trim();
+    }
+    throw new Error('Formato no soportado. Usa .md, .txt, .pdf o .docx.');
+  }
+
+  async function verifyDocument(text){
+    const headers={ "Content-Type":"application/json" };
+    const tk=getToken(); if(tk) headers["x-app-token"]=tk;
+    const res=await fetch('/api/check', { method:"POST", headers, body:JSON.stringify({ text }) });
+    if(res.status===401){ const e=new Error("Acceso protegido."); e.code="AUTH"; throw e; }
+    let data={}; try{ data=await res.json(); }catch(e){}
+    if(!res.ok) throw new Error(data.error||("El verificador respondió "+res.status));
+    return data;
+  }
 
   function renderModal(){
     const old = root.querySelector('.overlay'); if(old) old.remove();
@@ -909,6 +1040,52 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
               <button class="btn primary" id="mGen" ${state.busy?'disabled':''}>
                 ${state.busy?'<span class="spin"></span> Analizando…':'Generar borrador'}
               </button>
+            </div>
+          </div>
+        </div>`;
+    } else if(m.type==='verify'){
+      const r=m.result;
+      const reportHTML = r ? `
+        <div class="conf-head">
+          <div class="conf-score conf-${r.verdict||'parcial'}">${esc(r.score!=null?r.score+'%':'—')}</div>
+          <div>
+            <div class="conf-verdict conf-${r.verdict||'parcial'}">${esc(r.verdictLabel||r.verdict||'Revisión necesaria')}</div>
+            <div class="conf-summary">${esc(r.summary||'')}</div>
+          </div>
+        </div>
+        <div class="conf-list">
+          ${(r.sections||[]).map(s=>`
+            <div class="conf-row">
+              <span class="conf-dot conf-${s.status}"></span>
+              <div>
+                <strong>${esc(s.name)}</strong>
+                <span class="conf-tag conf-${s.status}">${s.status==='ok'?'presente':s.status==='weak'?'incompleto':'ausente'}</span>
+                ${s.note?`<div class="conf-note">${esc(s.note)}</div>`:''}
+              </div>
+            </div>`).join('')}
+        </div>` : '';
+      ov.innerHTML = `
+        <div class="modal">
+          <div class="modal-h">
+            <h3>Subir y verificar documento</h3>
+            <button class="x" id="mClose">×</button>
+          </div>
+          <div class="modal-b">
+            <p class="lead">Sube un STADR existente (<code>.md</code>, <code>.txt</code>, <code>.pdf</code> o <code>.docx</code>). Se comprobará su conformidad con el template y podrás cargarlo en el editor para almacenarlo en el catálogo compartido.</p>
+            <div class="drop" id="drop">
+              <input type="file" id="file" accept=".md,.txt,.json,.markdown,.pdf,.docx" style="display:none"/>
+              <div class="drop-inner">
+                <div class="drop-ic">↥</div>
+                <div>${m.file?('<strong>'+esc(m.file.name)+'</strong>'):'Arrastra un archivo o <u>haz clic para elegir</u>'}</div>
+                <div class="drop-sub">${m.file?(Math.round((m.file.size||0)/1024)+' KB'):'.md · .txt · .pdf · .docx'}</div>
+              </div>
+            </div>
+            ${reportHTML}
+            <div class="modal-foot">
+              <span class="status ${m.error?'err':''}">${esc(m.status||'')}</span>
+              <button class="btn ghost" id="mCancel">Cerrar</button>
+              ${r ? `<button class="btn primary" id="mImport">Cargar en editor</button>`
+                  : `<button class="btn primary" id="mCheck" ${state.busy||!m.file?'disabled':''}>${state.busy?'<span class="spin"></span> Verificando…':'Verificar'}</button>`}
             </div>
           </div>
         </div>`;
@@ -963,6 +1140,47 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         };
         run();
       };
+    } else if(m.type==='verify'){
+      const fileInp=ov.querySelector('#file'), drop=ov.querySelector('#drop');
+      const pick=()=>fileInp.click();
+      drop.onclick=pick;
+      ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+      ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+      drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f){ m.file=f; m.result=null; m.error=false; m.status=''; renderModal(); } });
+      fileInp.onchange=()=>{ const f=fileInp.files[0]; if(f){ m.file=f; m.result=null; m.error=false; m.status=''; renderModal(); } };
+
+      const chk=ov.querySelector('#mCheck');
+      if(chk) chk.onclick=async ()=>{
+        if(!m.file) return;
+        const run=async ()=>{
+          state.busy=true; m.error=false; m.status='Extrayendo texto del archivo…'; renderModal();
+          try {
+            m.text = await extractFileText(m.file);
+            if(!m.text || m.text.length<40) throw new Error('No se pudo extraer texto útil del archivo.');
+            const m2=state.modal; m2.status='Comprobando conformidad con el template…'; renderModal();
+            const data = await verifyDocument(m.text);
+            state.busy=false; m.result=data.conformance||data; m._parsed=data.record||null;
+            m.status=''; renderModal();
+          } catch(err){
+            state.busy=false;
+            if(err && err.code==='AUTH'){
+              const pass=prompt('Acceso protegido. Introduce la clave:');
+              if(pass){ setToken(pass.trim()); return run(); }
+              m.error=true; m.status='Verificación cancelada.'; renderModal(); return;
+            }
+            m.error=true; m.status='Error: '+(err.message||'fallo en la verificación'); renderModal();
+          }
+        };
+        run();
+      };
+      const imp=ov.querySelector('#mImport');
+      if(imp) imp.onclick=()=>{
+        const parsed=m._parsed;
+        if(!parsed){ toast('El documento no pudo estructurarse automáticamente'); return; }
+        const rec=mergeGenerated(parsed);
+        closeModal(); openEditor(rec);
+        toast('Documento cargado · revísalo y guárdalo en el catálogo');
+      };
     } else {
       const cp=ov.querySelector('#mCopy');
       if(cp) cp.onclick=async ()=>{ try{ await navigator.clipboard.writeText(m.md); toast('Copiado'); }catch(e){ toast('No se pudo copiar'); } };
@@ -971,9 +1189,20 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
 
   /* ---------- Init ---------- */
   (async function init(){
-    root.innerHTML = `<div class="wrap"><div style="padding:80px;text-align:center;color:#8a8597;font-family:'IBM Plex Mono',monospace;font-size:13px"><span class="spin" style="border-color:#e9d2c6;border-top-color:#b6502b"></span> Cargando catálogo…</div></div>`;
-    await loadIndex();
-    render();
+    root.innerHTML = `<div class="wrap"><div style="padding:80px;text-align:center;color:#8a8597;font-family:'IBM Plex Mono',monospace;font-size:13px"><span class="spin" style="border-color:#e9d2c6;border-top-color:#b6502b"></span> Cargando catálogo compartido…</div></div>`;
+    try {
+      await loadIndex();
+      render();
+    } catch(e){
+      const auth = e && e.code==='AUTH';
+      root.innerHTML = `<div class="wrap"><div style="padding:70px 30px;text-align:center;color:#54505f">
+        <div style="font-family:'Fraunces',serif;font-size:40px;color:#e9d2c6;margin-bottom:14px">§</div>
+        <h3 style="font-family:'Fraunces',serif;font-size:21px;color:#54505f;font-weight:500;margin-bottom:8px">No se pudo cargar el catálogo</h3>
+        <p style="font-size:13.5px;max-width:420px;margin:0 auto 18px">${auth?'Clave de acceso no introducida o incorrecta.':'No hay conexión con el almacén compartido. Si abres el archivo directamente, despliega en Netlify o usa <code>netlify dev</code>.'}</p>
+        <button id="retry" style="font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;padding:9px 18px;border:1px solid #1f1d29;background:transparent;cursor:pointer;border-radius:2px">Reintentar</button>
+      </div></div>`;
+      const rb=root.querySelector('#retry'); if(rb) rb.onclick=()=>init();
+    }
   })();
 })();
 </script>
