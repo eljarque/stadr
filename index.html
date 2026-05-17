@@ -77,6 +77,13 @@
   #stadr-root .btn.sm { padding:5px 11px; font-size:12px; }
   #stadr-root .btn:disabled { opacity:.45; cursor:not-allowed; }
 
+  /* Catalog search */
+  #stadr-root #catSearch {
+    font-size:13px !important; color:var(--ink) !important; background:var(--card) !important;
+    border-color:var(--line) !important; transition:.15s ease;
+  }
+  #stadr-root #catSearch:focus { outline:none; border-color:var(--accent) !important; box-shadow:0 0 0 2px rgba(66,153,225,.1); }
+
   /* Layout */
   #stadr-root .layout { display:grid; grid-template-columns:330px 1fr; gap:28px; align-items:start; }
   @media (max-width:920px){ #stadr-root .layout { grid-template-columns:1fr; } }
@@ -638,6 +645,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
         <div class="layout">
           <div class="catalog">
             <div class="catalog-h">Catálogo</div>
+            <input type="text" id="catSearch" placeholder="Buscar por número, título, estado…" 
+              style="width:100%; padding:7px 8px; font-size:12px; margin-bottom:12px; border:1px solid var(--line); border-radius:2px; font-family:'IBM Plex Sans',sans-serif"/>
             <div id="catList"></div>
           </div>
           <div class="panel"><div id="panelBody"></div></div>
@@ -652,13 +661,30 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
     if(state.modal) renderModal();
   }
 
-  function renderCatalog(){
+  function renderCatalog(query=''){
     const el = root.querySelector('#catList');
-    if(!state.index.length){
-      el.innerHTML = `<div class="empty-cat">Aún no hay decisiones.<br/>Crea una nueva o genérala desde una transcripción.</div>`;
+    let list = state.index;
+    
+    // Filtrar según query de búsqueda
+    if(query.trim()){
+      const q = query.trim().toLowerCase();
+      list = state.index.filter(r=>
+        (r.number||'XXX').toLowerCase().includes(q) ||
+        (r.title||'').toLowerCase().includes(q) ||
+        (r.status||'').toLowerCase().includes(q)
+      );
+    }
+    
+    if(!list.length){
+      if(query.trim()){
+        el.innerHTML = `<div class="empty-cat">No se encontraron STADR que coincidan con "${esc(query)}".</div>`;
+      } else {
+        el.innerHTML = `<div class="empty-cat">Aún no hay decisiones.<br/>Crea una nueva o genérala desde una transcripción.</div>`;
+      }
       return;
     }
-    el.innerHTML = state.index.map(r=>{
+    
+    el.innerHTML = list.map(r=>{
       const active = state.current && state.current.id===r.id ? ' active':'';
       return `<div class="rec${active}" data-id="${r.id}">
         <div class="num">STADR-${esc(r.number)||'XXX'}</div>
@@ -912,6 +938,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto adiciona
       state.dirty=false; renderCatalog(); renderPanel();
       toast('STADR eliminado');
     };
+
+    // Event listener para búsqueda en catálogo
+    const catSearch = root.querySelector('#catSearch');
+    if(catSearch){
+      catSearch.oninput = ()=>{ renderCatalog(catSearch.value); };
+    }
   }
 
   // Sync any DOM input values into state before a re-render
